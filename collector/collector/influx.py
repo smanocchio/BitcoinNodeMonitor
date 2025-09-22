@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, Iterable
+from typing import Any, Dict, Iterable
 
 try:  # pragma: no cover
-    import requests
+    import requests  # type: ignore[import-untyped]
 except ImportError:  # pragma: no cover
     class _Requests:
-        def post(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+        def post(self, *args: Any, **kwargs: Any) -> None:
             return None
 
     requests = _Requests()  # type: ignore[assignment]

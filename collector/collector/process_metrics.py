@@ -4,12 +4,17 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import psutil
+try:  # pragma: no cover
+    import psutil  # type: ignore[import-untyped]
+except ImportError:  # pragma: no cover
+    psutil = None  # type: ignore[assignment]
 
 
 def collect_process_metrics(process_name: str = "bitcoind") -> dict[str, float]:
     """Return CPU%, RSS MB, and open file descriptors for a named process."""
 
+    if psutil is None:
+        raise RuntimeError("psutil is required to collect process metrics")
     for proc in psutil.process_iter(["name", "cpu_percent", "memory_info", "num_fds"]):
         if proc.info.get("name") == process_name:
             memory = proc.info.get("memory_info")
@@ -22,6 +27,8 @@ def collect_process_metrics(process_name: str = "bitcoind") -> dict[str, float]:
 
 
 def collect_disk_usage(path: str) -> dict[str, float]:
+    if psutil is None:
+        raise RuntimeError("psutil is required to collect disk usage")
     usage = psutil.disk_usage(str(Path(path)))
     return {
         "total_gb": round(usage.total / (1024**3), 2),

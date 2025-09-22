@@ -3,18 +3,18 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 try:  # pragma: no cover
-    from geoip2.database import Reader
+    from geoip2.database import Reader  # type: ignore[import-not-found, import-untyped]
 except ImportError:  # pragma: no cover
     Reader = None  # type: ignore[assignment]
 
 
 class GeoIPResolver:
     def __init__(self, db_dir: str = "/usr/share/GeoIP") -> None:
-        self.city_reader: Optional[Reader] = None
-        self.asn_reader: Optional[Reader] = None
+        self.city_reader: Optional[Any] = None
+        self.asn_reader: Optional[Any] = None
         city_path = Path(db_dir) / "GeoLite2-City.mmdb"
         asn_path = Path(db_dir) / "GeoLite2-ASN.mmdb"
         if Reader is not None and city_path.exists():

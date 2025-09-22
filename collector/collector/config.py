@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Optional
 
 try:  # pragma: no cover - prefer real pydantic when available
-    from pydantic import BaseSettings, Field, validator
+    from pydantic import BaseSettings, Field, validator  # type: ignore[import-not-found, import-untyped]
 except ImportError:  # pragma: no cover
     from .pydantic_stub import BaseSettings, Field, validator
 

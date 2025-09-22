@@ -6,36 +6,58 @@ import argparse
 import asyncio
 import logging
 import time
-from typing import Dict, List
+from typing import Any, Callable, Dict, List, TypeVar
+
+RequestException: type[Exception]
 
 try:  # pragma: no cover
-    import requests
+    import requests  # type: ignore[import-untyped]
 except ImportError:  # pragma: no cover
-    class _Requests:
-        def get(self, *args, **kwargs):  # type: ignore[no-untyped-def]
-            raise RuntimeError("requests is required for collector runtime")
+    class _RequestException(RuntimeError):
+        pass
 
-        def post(self, *args, **kwargs):  # type: ignore[no-untyped-def]
-            raise RuntimeError("requests is required for collector runtime")
+    class _Requests:
+        def get(self, *args: Any, **kwargs: Any) -> Any:
+            raise _RequestException("requests is required for collector runtime")
+
+        def post(self, *args: Any, **kwargs: Any) -> Any:
+            raise _RequestException("requests is required for collector runtime")
 
     requests = _Requests()  # type: ignore[assignment]
+    RequestException = _RequestException
+else:
+    RequestException = requests.RequestException  # type: ignore[attr-defined]
+
+TFunc = TypeVar("TFunc", bound=Callable[..., Any])
+
+RetryError: type[Exception]
 
 try:  # pragma: no cover
-    from tenacity import RetryError, retry, stop_after_attempt, wait_exponential
+    from tenacity import (  # type: ignore[import-not-found, import-untyped]
+        RetryError as TenacityRetryError,
+        retry,
+        stop_after_attempt,
+        wait_exponential,
+    )
 except ImportError:  # pragma: no cover
-    RetryError = Exception
+    class _RetryError(Exception):
+        """Fallback exception raised when tenacity is unavailable."""
 
-    def retry(*args, **kwargs):
-        def decorator(func):
+    RetryError = _RetryError
+
+    def retry(*args: Any, **kwargs: Any):  # type: ignore[no-untyped-def]
+        def decorator(func: TFunc) -> TFunc:
             return func
 
         return decorator
 
-    def stop_after_attempt(*args, **kwargs):  # type: ignore[return-type]
+    def stop_after_attempt(*args: Any, **kwargs: Any):  # type: ignore[return-value]
         return None
 
-    def wait_exponential(*args, **kwargs):  # type: ignore[return-type]
+    def wait_exponential(*args: Any, **kwargs: Any):  # type: ignore[return-value]
         return None
+else:
+    RetryError = TenacityRetryError
 
 from .autodetect import find_cookie, format_cookie_auth
 from .bitcoin_rpc import BitcoinRPC
@@ -44,6 +66,7 @@ from .fulcrum_client import FulcrumClient
 from .geoip import GeoIPResolver
 from .influx import InfluxWriter, Point
 from .metrics import (
+    FeeBucket,
     ReorgTracker,
     bucket_mempool_histogram,
     create_blockchain_points,
@@ -191,7 +214,7 @@ class CollectorService:
                 .field("tip_height", float(fulcrum.get("tip_height", 0)))
                 .field("clients", float(fulcrum.get("clients", 0)))
             )
-        except requests.RequestException:
+        except RequestException:
             LOGGER.debug("Fulcrum stats unavailable")
 
         self.influx.write_points(points)
@@ -207,6 +230,7 @@ class CollectorService:
     def _collect_mempool_histogram(self) -> List[Point]:
         if self.config.mempool_hist_source == "none":
             return []
+        hist: List[FeeBucket]
         if self.config.mempool_hist_source == "core_rawmempool":
             raw = self.rpc.get_raw_mempool(True)
             buckets: Dict[str, int] = {}
@@ -214,8 +238,8 @@ class CollectorService:
                 fee = tx.get("fees", {}).get("base", 0)
                 vsize = tx.get("vsize", 1) or 1
                 rate = (fee * 1e8) / vsize
-                bucket = f"{int(rate // 5) * 5}-{int(rate // 5) * 5 + 5}"
-                buckets[bucket] = buckets.get(bucket, 0) + 1
+                bucket_key = f"{int(rate // 5) * 5}-{int(rate // 5) * 5 + 5}"
+                buckets[bucket_key] = buckets.get(bucket_key, 0) + 1
             hist = bucket_mempool_histogram(buckets)
         else:
             url = f"{self.config.mempool_api_base}/api/v1/fees/recommended"
@@ -229,9 +253,9 @@ class CollectorService:
             except requests.RequestException:
                 hist = []
         points = []
-        for bucket in hist:
+        for entry in hist:
             point = Point("mempool_hist").tag("network", self.config.bitcoin_network)
-            points.append(point.field(bucket["bucket"], bucket["count"]))
+            points.append(point.field(entry["bucket"], entry["count"]))
         return points
 
     def close(self) -> None:

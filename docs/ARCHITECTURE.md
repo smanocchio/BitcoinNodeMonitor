@@ -17,7 +17,7 @@
 
 ## Bitcoin Core setup (important)
 The collector pulls metrics from Bitcoin Core via RPC (and optionally ZMQ).
-You do not point Bitcoin Core to a Prometheus or collector endpoint.
+Bitcoin Core is never reconfigured to emit metrics; the collector simply reads data it already exposes.
 
 Minimal bitcoin.conf:
 

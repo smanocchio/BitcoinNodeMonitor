@@ -47,7 +47,7 @@ services:
     container_name: btc_collector
     restart: unless-stopped
     env_file:
-      - ${ENV_FILE_PATH:-.env}
+      - ${ENV_FILE_PATH:-.env.example}
     volumes:
       - ${BITCOIN_DATADIR:-~/.bitcoin}:${BITCOIN_DATADIR:-/root/.bitcoin}:ro
     healthcheck:
@@ -61,7 +61,7 @@ services:
     container_name: btc_geoipupdate
     restart: unless-stopped
     env_file:
-      - ${ENV_FILE_PATH:-.env}
+      - ${ENV_FILE_PATH:-.env.example}
     environment:
       GEOIPUPDATE_ACCOUNT_ID: ${GEOIP_ACCOUNT_ID:-}
       GEOIPUPDATE_LICENSE_KEY: ${GEOIP_LICENSE_KEY:-}

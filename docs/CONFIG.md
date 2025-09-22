@@ -4,7 +4,7 @@ All configuration is managed via the `.env` file (copied from `.env.example`). D
 
 ## Bitcoin Core setup (important)
 The collector pulls metrics from Bitcoin Core via RPC (and optionally ZMQ).
-You do not point Bitcoin Core to a Prometheus or collector endpoint.
+Bitcoin Core stays unchanged; the collector simply reads via RPC/ZMQ.
 
 Minimal bitcoin.conf:
 

@@ -10,12 +10,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Ensure repository flattened
+      - name: Guard: no wrapper dir
         run: |
-          if [ -d bitcoin-monitoring-stack ]; then
-            echo "Nested directory 'bitcoin-monitoring-stack/' must not exist."
-            exit 1
+          if [ -d "bitcoin-monitoring-stack" ]; then
+            echo "Do not nest the project under bitcoin-monitoring-stack/"; exit 1;
           fi
+      - name: Guard: no Prometheus endpoint wording
+        run: |
+          matches=$(git ls-files | xargs grep -nE "collector:9333|Prometheus option|\/metrics\b" || true)
+          if [ -n "$matches" ]; then
+            filtered=$(echo "$matches" | grep -v 'community exporter' || true)
+            if [ -n "$filtered" ]; then
+              echo "$filtered"
+              echo "Docs must not reference a Prometheus endpoint or collector:9333"
+              exit 1
+            fi
+          fi
+      - name: Guard: no binaries
+        run: |
+          bad=$(git ls-files | xargs file -i | grep -v 'charset=utf-8' || true)
+          if [ -n "$bad" ]; then
+            echo "$bad"; echo "Binary files are not allowed."; exit 1;
+          fi
+      - name: Prepare env file
+        run: cp .env.example .env
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
@@ -29,11 +47,10 @@ jobs:
         run: ruff check
       - name: Mypy
         working-directory: collector
-        run: mypy
+        run: mypy --config-file ../mypy.ini
       - name: Pytest
         working-directory: collector
         run: pytest
       - name: Validate docker compose
         run: |
-          cp .env.example .env
-          docker compose config
+          ENV_FILE_PATH=.env.example docker compose config

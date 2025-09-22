@@ -1,18 +1,18 @@
 # Quick Start Guide
 
-This guide walks through installing and running the Bitcoin Monitoring Stack on Linux and Windows (via WSL). It assumes a running Bitcoin Core node reachable via RPC and (optionally) ZMQ.
+This guide walks through installing and running the Bitcoin Node Monitoring Stack on Linux and Windows (via WSL). It assumes a running Bitcoin Core node reachable via RPC and (optionally) ZMQ.
 
 ## 1. Prerequisites
 
 - Docker Engine 24+ and Docker Compose plugin (`docker compose`) installed.
-- Bitcoin Core 25+ with RPC enabled (default on local nodes) and ZMQ notifiers configured if you want real-time metrics.
+- Bitcoin Core 25+ with RPC enabled (ZMQ optional but recommended for real-time metrics).
 - Optional: MaxMind GeoLite2 account (free) for GeoIP enrichment.
 
 ## 2. Clone & Configure
 
 ```bash
-git clone https://github.com/your-org/bitcoin-monitoring-stack.git
-cd bitcoin-monitoring-stack
+git clone https://github.com/your-org/bitcoin-node-monitor.git
+cd bitcoin-node-monitor
 cp .env.example .env
 ```
 
@@ -33,26 +33,58 @@ Open `.env` in your editor and review the settings:
 
 If the collector runs on the same machine as Bitcoin Core, it autodetects the cookie path when left blank.
 
-## 3. Start the Stack
+### Bitcoin Core setup (important)
+The collector pulls metrics from Bitcoin Core via RPC (and optionally ZMQ).
+You do not point Bitcoin Core to a Prometheus or collector endpoint.
 
+Minimal bitcoin.conf:
+
+ini
+Copy code
+server=1
+rpcbind=127.0.0.1
+# If remote collector, allow your LAN and/or create a read-only RPC user:
+# rpcallowip=192.168.0.0/16
+
+# Optional (recommended):
+zmqpubrawblock=tcp://127.0.0.1:28332
+zmqpubrawtx=tcp://127.0.0.1:28333
+Set matching envs in .env:
+
+pgsql
+Copy code
+BITCOIN_RPC_HOST/PORT, BITCOIN_RPC_COOKIE_PATH (or USER/PASSWORD)
+BITCOIN_ZMQ_RAWBLOCK, BITCOIN_ZMQ_RAWTX  (if you enabled ZMQ)
+
+## 3. Choose your deployment mode
+
+### Option A — Bundled InfluxDB + Bundled Grafana (easiest)
 ```bash
-docker compose up -d
+docker compose --profile bundled-influx --profile bundled-grafana up -d
+```
+Grafana: [http://127.0.0.1:3000](http://127.0.0.1:3000) (default `admin/admin` — change it!)
+
+### Option B — Existing InfluxDB, Bundled Grafana
+```bash
+# Set INFLUX_URL, INFLUX_ORG, INFLUX_BUCKET, INFLUX_TOKEN in .env
+USE_EXTERNAL_INFLUX=1 docker compose --profile bundled-grafana up -d
 ```
 
-The first run may take a few minutes while InfluxDB and Grafana initialize. Check logs with:
-
+### Option C — Existing InfluxDB + Existing Grafana
 ```bash
-docker compose logs -f collector
+# Set INFLUX_* and INFLUX_TOKEN in .env
+USE_EXTERNAL_INFLUX=1 USE_EXTERNAL_GRAFANA=1 docker compose up -d collector
+# In your Grafana, add an InfluxDB v2 (Flux) datasource and import grafana/dashboards/*.json
 ```
 
 ## 4. Access Grafana
 
-Visit [http://127.0.0.1:3000](http://127.0.0.1:3000) (default admin/admin credentials). Dashboards are pre-loaded under **Starred**.
+Visit [http://127.0.0.1:3000](http://127.0.0.1:3000) (default admin/admin credentials). Dashboards are pre-loaded under **Starred** when using the bundled Grafana profile.
 
 If you need to access Grafana from your LAN:
 
 1. In `.env`, set `EXPOSE_UI=1` and optionally update `GRAFANA_BIND_IP=0.0.0.0` and `INFLUX_BIND_IP=0.0.0.0` (see [Hardening](HARDENING.md) for security steps).
-2. Re-run `docker compose up -d`.
+2. Re-run the relevant `docker compose` command from the options above.
 
 ## 5. Grafana Alerting Quickstart
 
@@ -68,7 +100,7 @@ Example alert JSON for import is available at `grafana/dashboards/examples/alert
 ## 6. Windows (WSL) Notes
 
 - Install Docker Desktop and enable the WSL backend.
-- Place the repository inside your WSL home directory (`~/bitcoin-monitoring-stack`) for best performance.
+- Place the repository inside your WSL home directory (`~/bitcoin-node-monitor`) for best performance.
 - Use `/mnt/c/Users/<name>/AppData/Roaming/Bitcoin` for `BITCOIN_DATADIR` if Bitcoin Core runs on Windows.
 - Map Windows paths into the collector container by editing the `BITCOIN_DATADIR` entry (e.g., `/mnt/c/Users/...`).
 
@@ -86,5 +118,6 @@ docker compose up -d
 
 - **Fulcrum/Electrs**: Set `FULCRUM_STATS_URL` to your server's stats endpoint to ingest tip height, clients, and resource usage.
 - **Mempool Histogram**: Switch `MEMPOOL_HIST_SOURCE` to `core_rawmempool` (slower but self-contained) or `mempool_api` to use a local mempool.space API clone.
+- **GeoIP**: With credentials in `.env`, the `geoipupdate` service fetches MaxMind databases and the collector uses them for country/ASN counts (no IP storage).
 
 You're all set! Explore the dashboards and tune alerts to match your operational needs.

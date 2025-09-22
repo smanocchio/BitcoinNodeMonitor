@@ -3,16 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, Iterable
+from typing import Dict, Iterable
 
-try:  # pragma: no cover
-    import requests  # type: ignore[import-untyped]
-except ImportError:  # pragma: no cover
-    class _Requests:
-        def post(self, *args: Any, **kwargs: Any) -> None:
-            return None
-
-    requests = _Requests()  # type: ignore[assignment]
+import requests
 
 
 @dataclass

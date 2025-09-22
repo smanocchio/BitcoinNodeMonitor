@@ -61,7 +61,8 @@ def format_cookie_auth(cookie_path: Path) -> tuple[str, str]:
 
     raw = cookie_path.read_text(encoding="utf-8").strip()
     if ":" in raw:
-        return tuple(raw.split(":", 1))  # type: ignore[return-value]
+        username, password = raw.split(":", 1)
+        return username, password
     raise ValueError("Malformed cookie file")
 
 

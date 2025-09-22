@@ -4,88 +4,86 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any, Callable, Optional, cast
+from typing import Literal, Optional
 
-BaseSettings: type[Any]
-Field: Callable[..., Any]
-validator: Callable[..., Any]
-
-try:  # pragma: no cover - prefer real pydantic when available
-    import pydantic as _pydantic  # type: ignore[import-not-found, import-untyped]
-except ImportError:  # pragma: no cover
-    from .pydantic_stub import BaseSettings as _StubBaseSettings
-    from .pydantic_stub import Field as _stub_field
-    from .pydantic_stub import validator as _stub_validator
-    BaseSettings = _StubBaseSettings
-    Field = _stub_field
-    validator = _stub_validator
-else:  # pragma: no cover
-    BaseSettings = cast(type[Any], _pydantic.BaseSettings)
-    Field = cast(Callable[..., Any], _pydantic.Field)
-    validator = cast(Callable[..., Any], _pydantic.validator)
+from pydantic import field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class CollectorConfig(BaseSettings):
     """Pydantic-based configuration model."""
 
-    bitcoin_rpc_host: str = Field("127.0.0.1", env="BITCOIN_RPC_HOST")
-    bitcoin_rpc_port: int = Field(8332, env="BITCOIN_RPC_PORT")
-    bitcoin_rpc_user: str = Field("", env="BITCOIN_RPC_USER")
-    bitcoin_rpc_password: str = Field("", env="BITCOIN_RPC_PASSWORD")
-    bitcoin_rpc_cookie_path: str = Field("~/.bitcoin/.cookie", env="BITCOIN_RPC_COOKIE_PATH")
-    bitcoin_network: str = Field("mainnet", env="BITCOIN_NETWORK")
-    bitcoin_datadir: str = Field("~/.bitcoin", env="BITCOIN_DATADIR")
-    bitcoin_chainstate_dir: str = Field("~/.bitcoin/chainstate", env="BITCOIN_CHAINSTATE_DIR")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+    )
 
-    bitcoin_zmq_rawblock: str = Field("tcp://127.0.0.1:28332", env="BITCOIN_ZMQ_RAWBLOCK")
-    bitcoin_zmq_rawtx: str = Field("tcp://127.0.0.1:28333", env="BITCOIN_ZMQ_RAWTX")
+    bitcoin_rpc_host: str = "127.0.0.1"
+    bitcoin_rpc_port: int = 8332
+    bitcoin_rpc_user: str = ""
+    bitcoin_rpc_password: str = ""
+    bitcoin_rpc_cookie_path: str = "~/.bitcoin/.cookie"
+    bitcoin_network: str = "mainnet"
+    bitcoin_datadir: str = "~/.bitcoin"
+    bitcoin_chainstate_dir: str = "~/.bitcoin/chainstate"
 
-    fulcrum_stats_url: str = Field("http://127.0.0.1:8080/stats", env="FULCRUM_STATS_URL")
+    bitcoin_zmq_rawblock: str = "tcp://127.0.0.1:28332"
+    bitcoin_zmq_rawtx: str = "tcp://127.0.0.1:28333"
 
-    influx_url: str = Field("http://influxdb:8086", env="INFLUX_URL")
-    influx_org: str = Field("bitcoin", env="INFLUX_ORG")
-    influx_bucket: str = Field("btc_metrics", env="INFLUX_BUCKET")
-    influx_token: str = Field("", env="INFLUX_TOKEN")
+    fulcrum_stats_url: str = "http://127.0.0.1:8080/stats"
 
-    scrape_interval_fast: int = Field(5, env="SCRAPE_INTERVAL_FAST")
-    scrape_interval_slow: int = Field(30, env="SCRAPE_INTERVAL_SLOW")
+    influx_url: str = "http://influxdb:8086"
+    influx_org: str = "bitcoin"
+    influx_bucket: str = "btc_metrics"
+    influx_token: str = ""
 
-    enable_block_intervals: bool = Field(True, env="ENABLE_BLOCK_INTERVALS")
-    enable_softfork_signal: bool = Field(True, env="ENABLE_SOFTFORK_SIGNAL")
-    enable_peer_quality: bool = Field(True, env="ENABLE_PEER_QUALITY")
-    enable_process_metrics: bool = Field(True, env="ENABLE_PROCESS_METRICS")
-    enable_disk_io: bool = Field(True, env="ENABLE_DISK_IO")
-    enable_peer_churn: bool = Field(True, env="ENABLE_PEER_CHURN")
-    enable_asn_stats: bool = Field(True, env="ENABLE_ASN_STATS")
+    scrape_interval_fast: int = 5
+    scrape_interval_slow: int = 30
 
-    mempool_hist_source: str = Field("none", env="MEMPOOL_HIST_SOURCE")
-    mempool_api_base: str = Field("http://127.0.0.1:3006", env="MEMPOOL_API_BASE")
+    enable_block_intervals: bool = True
+    enable_softfork_signal: bool = True
+    enable_peer_quality: bool = True
+    enable_process_metrics: bool = True
+    enable_disk_io: bool = True
+    enable_peer_churn: bool = True
+    enable_asn_stats: bool = True
 
-    geoip_account_id: str = Field("", env="GEOIP_ACCOUNT_ID")
-    geoip_license_key: str = Field("", env="GEOIP_LICENSE_KEY")
-    geoip_update_frequency_days: int = Field(7, env="GEOIP_UPDATE_FREQUENCY_DAYS")
+    mempool_hist_source: Literal["none", "core_rawmempool", "mempool_api"] = "none"
+    mempool_api_base: str = "http://127.0.0.1:3006"
 
-    collector_log_level: str = Field("INFO", env="COLLECTOR_LOG_LEVEL")
+    geoip_account_id: str = ""
+    geoip_license_key: str = ""
+    geoip_update_frequency_days: int = 7
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
+    collector_log_level: str = "INFO"
 
-    @validator("bitcoin_rpc_cookie_path", "bitcoin_datadir", "bitcoin_chainstate_dir", pre=True)
-    def expand_user(cls, value: str) -> str:  # noqa: D401
+    @field_validator(
+        "bitcoin_rpc_cookie_path",
+        "bitcoin_datadir",
+        "bitcoin_chainstate_dir",
+        mode="before",
+    )
+    @classmethod
+    def expand_user(cls, value: str) -> str:
         """Expand user home references (~)."""
 
         return os.path.expanduser(value)
 
-    @validator("mempool_hist_source")
-    def validate_hist_source(cls, value: str) -> str:
+    @field_validator("mempool_hist_source", mode="before")
+    @classmethod
+    def validate_hist_source(cls, value: str | None) -> str:
         allowed = {"none", "core_rawmempool", "mempool_api"}
-        if value not in allowed:
+        if isinstance(value, str):
+            value_str = value.strip().lower() or "none"
+        else:
+            value_str = str(value or "none").lower()
+        if value_str not in allowed:
             raise ValueError(f"MEMPOOL_HIST_SOURCE must be one of {allowed}")
-        return value
+        return value_str
 
-    @validator("scrape_interval_fast", "scrape_interval_slow")
+    @field_validator("scrape_interval_fast", "scrape_interval_slow")
+    @classmethod
     def positive_intervals(cls, value: int) -> int:
         if value <= 0:
             raise ValueError("Scrape intervals must be positive")

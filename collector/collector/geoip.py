@@ -3,28 +3,21 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Optional, cast
+from typing import Optional
 
-GeoIPReader: type[Any] | None
-
-try:  # pragma: no cover
-    import geoip2.database as _geoip_database  # type: ignore[import-not-found, import-untyped]
-except ImportError:  # pragma: no cover
-    GeoIPReader = None
-else:  # pragma: no cover
-    GeoIPReader = cast(type[Any], _geoip_database.Reader)
+from geoip2.database import Reader
 
 
 class GeoIPResolver:
     def __init__(self, db_dir: str = "/usr/share/GeoIP") -> None:
-        self.city_reader: Optional[Any] = None
-        self.asn_reader: Optional[Any] = None
+        self.city_reader: Optional[Reader] = None
+        self.asn_reader: Optional[Reader] = None
         city_path = Path(db_dir) / "GeoLite2-City.mmdb"
         asn_path = Path(db_dir) / "GeoLite2-ASN.mmdb"
-        if GeoIPReader is not None and city_path.exists():
-            self.city_reader = GeoIPReader(str(city_path))
-        if GeoIPReader is not None and asn_path.exists():
-            self.asn_reader = GeoIPReader(str(asn_path))
+        if city_path.exists():
+            self.city_reader = Reader(str(city_path))
+        if asn_path.exists():
+            self.asn_reader = Reader(str(asn_path))
 
     def close(self) -> None:
         if self.city_reader:
@@ -38,14 +31,14 @@ class GeoIPResolver:
             try:
                 city = self.city_reader.city(ip)
                 result["country"] = city.country.iso_code
-            except Exception:
+            except Exception:  # noqa: BLE001
                 result["country"] = None
         if self.asn_reader:
             try:
                 asn = self.asn_reader.asn(ip)
                 number = asn.autonomous_system_number
                 org = asn.autonomous_system_organization
-                result["asn"] = f"AS{number} {org}"
-            except Exception:
+                result["asn"] = f"AS{number} {org}" if number and org else None
+            except Exception:  # noqa: BLE001
                 result["asn"] = None
         return result

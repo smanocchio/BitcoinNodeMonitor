@@ -80,8 +80,10 @@ future compatibility with dashboards.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `MEMPOOL_HIST_SOURCE` | `none` | Set to `core_rawmempool` to bucket transactions using RPC data or `mempool_api` to query an external API. |
+| `MEMPOOL_HIST_SOURCE` | `none` | `core_rawmempool` performs a full verbose `getrawmempool` pull every fast scrape, rolls the results into 5-sat/vbyte buckets, and writes a `mempool_hist` measurement at the cost of extra RPC, CPU, and network overhead. `mempool_api` fetches `/api/v1/fees/recommended` from `MEMPOOL_API_BASE`, expects a JSON object of bucket names mapped to numeric counts, converts each entry into histogram buckets, and skips the cycle when the request fails. |
 | `MEMPOOL_API_BASE` | `http://127.0.0.1:3006` | Base URL for the external API when `MEMPOOL_HIST_SOURCE=mempool_api`. The collector appends `/api/v1/fees/recommended`. |
+
+Choose `core_rawmempool` when you control the node and want the Grafana “Mempool Fee Histogram” panel to reflect precise 5-sat/vbyte buckets, accepting the additional RPC and processing load. Use `mempool_api` to delegate the histogram counts to an external service (with transient failures simply omitting an update) or stick with `none` to disable the panel entirely.
 
 When histogram collection is disabled (`none`), the collector skips external calls and no
 `mempool_hist` measurement is written.

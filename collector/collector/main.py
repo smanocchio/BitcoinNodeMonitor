@@ -8,6 +8,24 @@ import logging
 import time
 from typing import Any, Callable, Dict, List, TypeVar
 
+from .autodetect import find_cookie, format_cookie_auth
+from .bitcoin_rpc import BitcoinRPC
+from .config import CollectorConfig, load_config
+from .fulcrum_client import FulcrumClient
+from .geoip import GeoIPResolver
+from .influx import InfluxWriter, Point
+from .metrics import (
+    FeeBucket,
+    ReorgTracker,
+    bucket_mempool_histogram,
+    create_blockchain_points,
+    create_mempool_points,
+    create_peer_points,
+    peers_metrics,
+)
+from .process_metrics import collect_disk_usage, collect_process_metrics
+from .zmq_listener import ZMQListener
+
 RequestException: type[Exception]
 
 try:  # pragma: no cover
@@ -33,12 +51,7 @@ TFunc = TypeVar("TFunc", bound=Callable[..., Any])
 RetryError: type[Exception]
 
 try:  # pragma: no cover
-    from tenacity import (  # type: ignore[import-not-found, import-untyped]
-        RetryError as TenacityRetryError,
-        retry,
-        stop_after_attempt,
-        wait_exponential,
-    )
+    import tenacity  # type: ignore[import-not-found, import-untyped]
 except ImportError:  # pragma: no cover
     class _RetryError(Exception):
         """Fallback exception raised when tenacity is unavailable."""
@@ -57,25 +70,10 @@ except ImportError:  # pragma: no cover
     def wait_exponential(*args: Any, **kwargs: Any):  # type: ignore[return-value]
         return None
 else:
-    RetryError = TenacityRetryError
-
-from .autodetect import find_cookie, format_cookie_auth
-from .bitcoin_rpc import BitcoinRPC
-from .config import CollectorConfig, load_config
-from .fulcrum_client import FulcrumClient
-from .geoip import GeoIPResolver
-from .influx import InfluxWriter, Point
-from .metrics import (
-    FeeBucket,
-    ReorgTracker,
-    bucket_mempool_histogram,
-    create_blockchain_points,
-    create_mempool_points,
-    create_peer_points,
-    peers_metrics,
-)
-from .process_metrics import collect_disk_usage, collect_process_metrics
-from .zmq_listener import ZMQListener
+    RetryError = tenacity.RetryError  # type: ignore[attr-defined]
+    retry = tenacity.retry  # type: ignore[attr-defined]
+    stop_after_attempt = tenacity.stop_after_attempt  # type: ignore[attr-defined]
+    wait_exponential = tenacity.wait_exponential  # type: ignore[attr-defined]
 
 LOGGER = logging.getLogger(__name__)
 

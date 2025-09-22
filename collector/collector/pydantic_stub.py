@@ -20,11 +20,17 @@ def Field(default: Any, env: str | None = None) -> Any:
     return FieldInfo(default=default, env=env)
 
 
-def validator(*field_names: str, pre: bool | None = None) -> Callable[[Callable[[Any, Any], Any]], Callable[[Any, Any], Any]]:
+def validator(
+    *field_names: str,
+    pre: bool | None = None,
+) -> Callable[[Callable[[Any, Any], Any]], Callable[[Any, Any], Any]]:
     """Decorate validation callbacks similarly to Pydantic's API."""
 
     def decorator(func: Callable[[Any, Any], Any]) -> Callable[[Any, Any], Any]:
-        setattr(func, "__validator_config__", {"fields": field_names, "pre": pre})
+        func.__validator_config__ = {  # type: ignore[attr-defined]
+            "fields": field_names,
+            "pre": pre,
+        }
         return func
 
     return decorator
@@ -41,7 +47,7 @@ class BaseSettingsMeta(type):
                 fields[key] = value
                 namespace[key] = value.default
             elif callable(value) and hasattr(value, "__validator_config__"):
-                info: Mapping[str, Any] = getattr(value, "__validator_config__")
+                info: Mapping[str, Any] = value.__validator_config__  # type: ignore[attr-defined]
                 for field in info["fields"]:
                     validators_map.setdefault(field, value)
         namespace["__fields__"] = fields

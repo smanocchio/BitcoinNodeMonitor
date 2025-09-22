@@ -4,7 +4,7 @@ An easy-deploy monitoring stack for Bitcoin Core node runners. With a single com
 
 > **Note:** Binary documentation assets (like PNG screenshots) are not stored in this repository. To view or capture the example Grafana dashboard screenshot referenced in the docs, start the stack and use Grafana's *Share → Export → Download PNG* feature on the "01 Overview" dashboard. Save the image as `docs/images/overview-dashboard.png` if you would like to keep a local copy.
 
-### Legacy TL;DR Quick Start
+### TL;DR Quick Start
 
 ```bash
 cp .env.example .env

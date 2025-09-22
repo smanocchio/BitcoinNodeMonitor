@@ -10,21 +10,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Guard: no Prometheus references
+        run: |
+          if git ls-files | xargs grep -nEi 'prometheus|collector:9333|(^|[^a-z])\\/metrics([^a-z]|$)'; then
+            echo "Prometheus references are not allowed in this repo."; exit 1;
+          fi
       - name: Guard: no wrapper dir
         run: |
           if [ -d "bitcoin-monitoring-stack" ]; then
             echo "Do not nest the project under bitcoin-monitoring-stack/"; exit 1;
-          fi
-      - name: Guard: no Prometheus endpoint wording
-        run: |
-          matches=$(git ls-files | xargs grep -nE "collector:9333|Prometheus option|\/metrics\b" || true)
-          if [ -n "$matches" ]; then
-            filtered=$(echo "$matches" | grep -v 'community exporter' || true)
-            if [ -n "$filtered" ]; then
-              echo "$filtered"
-              echo "Docs must not reference a Prometheus endpoint or collector:9333"
-              exit 1
-            fi
           fi
       - name: Guard: no binaries
         run: |

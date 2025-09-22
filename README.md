@@ -21,12 +21,11 @@ An **easy-deploy** monitoring stack for **Bitcoin Core** node runners. One comma
 - [Common Pitfalls](#common-pitfalls)
 - [Uninstall / Clean Up](#uninstall--clean-up)
 - [License](#license)
-- [Prometheus Note](#prometheus-note)
 
 ---
 
 ## What You Get
-- **Collector → InfluxDB → Grafana** (no Prometheus endpoint)
+- **Collector → InfluxDB → Grafana** data flow
 - Blockchain sync & lag, mempool & fees, peer quality (geo/ASN), resource usage
 - Optional **Electrs/Fulcrum** `/stats` metrics
 - **Four prebuilt dashboards** (Overview, Sync & Health, Mempool & Fees, Peers & Geo)
@@ -95,7 +94,7 @@ In your external Grafana, add an **InfluxDB v2 (Flux)** datasource, then import 
 ---
 
 ## Bitcoin Core Setup
-The collector pulls metrics from Bitcoin Core via RPC (and optionally ZMQ). You do **not** point Bitcoin Core to this stack.
+The collector pulls metrics from Bitcoin Core via RPC (and optionally ZMQ); Bitcoin Core does not push metrics anywhere.
 
 Minimal `bitcoin.conf`:
 
@@ -228,7 +227,3 @@ docker compose down -v
 ## License
 MIT
 
----
-
-## Prometheus Note
-This stack does **not** expose a Prometheus endpoint or port 9333. All metrics flow Collector → InfluxDB → Grafana.

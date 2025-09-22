@@ -6,8 +6,14 @@ Follow the steps below and you should have dashboards in a few minutes.
 
 ## 1. Prerequisites
 
-* Docker Engine and Docker Compose Plugin installed on the host that will run the
-  monitoring containers.
+Follow the steps that match your operating system:
+
+* **Linux (including WSL2 distributions):** install the Docker Engine and Docker Compose
+  plugin from your distribution packages or directly from Docker. Ensure your user is part
+  of the `docker` group or run the commands below with `sudo`.
+* **Windows 10/11:** install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+  with the WSL2 backend enabled. Run the commands below from an elevated PowerShell or
+  Windows Terminal session. Docker Desktop ships with the Compose plugin already enabled.
 * A synchronised Bitcoin Core node reachable from the host. Enable JSON-RPC and ZMQ with
   the following options in `bitcoin.conf` if they are not already set:
 
@@ -26,10 +32,19 @@ Follow the steps below and you should have dashboards in a few minutes.
 
 1. Copy the example environment file and edit it to match your node:
 
-   ```bash
-   cp .env.example .env
-   $EDITOR .env
-   ```
+   * **Linux:**
+
+     ```bash
+     cp .env.example .env
+     $EDITOR .env
+     ```
+
+   * **Windows PowerShell:**
+
+     ```powershell
+     Copy-Item .env.example .env
+     notepad.exe .env
+     ```
 
 2. Set the following minimum values:
 
@@ -50,9 +65,17 @@ Follow the steps below and you should have dashboards in a few minutes.
 
 1. Launch InfluxDB, Grafana, the collector, and GeoIP update containers:
 
-   ```bash
-   docker compose --profile bundled-influx --profile bundled-grafana up -d
-   ```
+   * **Linux:**
+
+     ```bash
+     docker compose --profile bundled-influx --profile bundled-grafana up -d
+     ```
+
+   * **Windows PowerShell:**
+
+     ```powershell
+     docker compose --profile bundled-influx --profile bundled-grafana up -d
+     ```
 
    The profiles ensure that the bundled InfluxDB and Grafana instances start alongside the
    collector. If you plan to connect to external services you can omit the profiles and
@@ -60,10 +83,19 @@ Follow the steps below and you should have dashboards in a few minutes.
 
 2. Check service health:
 
-   ```bash
-   docker compose ps
-   docker compose logs collector | tail
-   ```
+   * **Linux:**
+
+     ```bash
+     docker compose ps
+     docker compose logs collector | tail
+     ```
+
+   * **Windows PowerShell:**
+
+     ```powershell
+     docker compose ps
+     docker compose logs collector | Select-Object -Last 20
+     ```
 
    The collector emits a log line each time the fast and slow loops complete. Failures to
    reach Bitcoin Core or InfluxDB will be logged here.
@@ -79,15 +111,31 @@ Follow the steps below and you should have dashboards in a few minutes.
 
 * Run the collector health check to confirm configuration loading:
 
-  ```bash
-  docker compose exec collector python -m collector --healthcheck
-  ```
+  * **Linux:**
+
+    ```bash
+    docker compose exec collector python -m collector --healthcheck
+    ```
+
+  * **Windows PowerShell:**
+
+    ```powershell
+    docker compose exec collector python -m collector --healthcheck
+    ```
 
 * Inspect the InfluxDB bucket:
 
-  ```bash
-  docker compose exec influxdb influx query 'from(bucket:"btc_metrics") |> range(start: -5m) |> limit(n:5)'
-  ```
+  * **Linux:**
+
+    ```bash
+    docker compose exec influxdb influx query 'from(bucket:"btc_metrics") |> range(start: -5m) |> limit(n:5)'
+    ```
+
+  * **Windows PowerShell:**
+
+    ```powershell
+    docker compose exec influxdb influx query "from(bucket:'btc_metrics') |> range(start: -5m) |> limit(n:5)"
+    ```
 
 If you see recent points and Grafana panels populate, you are ready to operate the stack.
 Continue to the comprehensive guides for deeper configuration or production hardening.

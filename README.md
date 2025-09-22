@@ -67,6 +67,12 @@ docker-compose.yml    Orchestrates the optional InfluxDB, Grafana, collector, an
   beyond localhost.
 * [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) – symptom-based debugging playbooks.
 
+### Operating System Notes
+
+The stack runs anywhere Docker is available. The quick start guide now contains parallel
+instructions for Linux hosts (including WSL2) and Windows hosts using PowerShell alongside
+Docker Desktop, so you can follow the workflow that matches your environment.
+
 ## Contributing
 
 Pull requests are welcome for new metrics, dashboard enhancements, or operational guides.

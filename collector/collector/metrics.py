@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, Iterable, List
+from typing import Any, Dict, Iterable, List, Mapping, Sequence, TypedDict
 
 from .config import CollectorConfig
 from .influx import Point
@@ -48,18 +48,23 @@ def percentile(values: Iterable[float], percent: float) -> float:
     return float(d0 + d1)
 
 
-def bucket_mempool_histogram(raw: Dict[str, int]) -> List[Dict[str, float]]:
-    buckets: List[Dict[str, float]] = []
+class FeeBucket(TypedDict):
+    bucket: str
+    count: float
+
+
+def bucket_mempool_histogram(raw: Mapping[str, int]) -> List[FeeBucket]:
+    buckets: List[FeeBucket] = []
     for fee_range, count in raw.items():
         buckets.append({"bucket": fee_range, "count": float(count)})
     return buckets
 
 
-def peers_metrics(peers: List[Dict[str, any]]) -> Dict[str, float]:
+def peers_metrics(peers: Sequence[Mapping[str, Any]]) -> Dict[str, float]:
     total = len(peers)
     inbound = len([p for p in peers if p.get("inbound")])
     outbound = total - inbound
-    ping_values = [float(p.get("pingtime", 0) * 1000) for p in peers if p.get("pingtime")]
+    ping_values = [float(p.get("pingtime", 0.0) * 1000) for p in peers if p.get("pingtime")]
     return {
         "total": float(total),
         "inbound": float(inbound),
@@ -71,13 +76,13 @@ def peers_metrics(peers: List[Dict[str, any]]) -> Dict[str, float]:
 
 def create_blockchain_points(
     config: CollectorConfig,
-    blockchain_info: Dict[str, any],
+    blockchain_info: Mapping[str, Any],
     reorg_depth: int,
-    zmq_status: Dict[str, Dict[str, float]],
+    zmq_status: Mapping[str, Mapping[str, Any]],
 ) -> List[Point]:
     points: List[Point] = []
-    best_height = blockchain_info.get("blocks", 0)
-    headers = blockchain_info.get("headers", best_height)
+    best_height = int(blockchain_info.get("blocks") or 0)
+    headers = int(blockchain_info.get("headers") or best_height)
     lag = calculate_block_lag(headers, best_height)
     points.append(
         Point("blockchain")
@@ -93,29 +98,29 @@ def create_blockchain_points(
         points.append(
             Point("zmq")
             .tag("stream", topic)
-            .field("seconds_since", status.get("seconds_since", 0.0))
-            .field("messages", status.get("messages", 0.0))
+            .field("seconds_since", float(status.get("seconds_since", 0.0)))
+            .field("messages", float(status.get("messages", 0.0)))
         )
     return points
 
 
 def create_mempool_points(
     config: CollectorConfig,
-    mempool_info: Dict[str, any],
-    fee_estimates: Dict[str, float],
+    mempool_info: Mapping[str, Any],
+    fee_estimates: Mapping[str, float],
 ) -> List[Point]:
     point = (
         Point("mempool")
         .tag("network", config.bitcoin_network)
         .field("tx_count", float(mempool_info.get("size", 0)))
-        .field("vsize_mb", float(mempool_info.get("bytes", 0) / 1_000_000))
+        .field("vsize_mb", float((mempool_info.get("bytes", 0) or 0) / 1_000_000))
         .field("fee_fast", fee_estimates.get("fast", 0.0))
         .field("fee_slow", fee_estimates.get("slow", 0.0))
     )
     return [point]
 
 
-def create_peer_points(config: CollectorConfig, summary: Dict[str, float]) -> List[Point]:
+def create_peer_points(config: CollectorConfig, summary: Mapping[str, float]) -> List[Point]:
     point = (
         Point("peers")
         .tag("network", config.bitcoin_network)

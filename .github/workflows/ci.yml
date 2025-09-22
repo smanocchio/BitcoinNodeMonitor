@@ -10,6 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Ensure repository flattened
+        run: |
+          if [ -d bitcoin-monitoring-stack ]; then
+            echo "Nested directory 'bitcoin-monitoring-stack/' must not exist."
+            exit 1
+          fi
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
@@ -28,4 +34,6 @@ jobs:
         working-directory: collector
         run: pytest
       - name: Validate docker compose
-        run: docker compose config
+        run: |
+          cp .env.example .env
+          docker compose config

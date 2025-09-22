@@ -4,12 +4,25 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Any, Callable, Optional, cast
+
+BaseSettings: type[Any]
+Field: Callable[..., Any]
+validator: Callable[..., Any]
 
 try:  # pragma: no cover - prefer real pydantic when available
-    from pydantic import BaseSettings, Field, validator
+    import pydantic as _pydantic  # type: ignore[import-not-found, import-untyped]
 except ImportError:  # pragma: no cover
-    from .pydantic_stub import BaseSettings, Field, validator
+    from .pydantic_stub import BaseSettings as _StubBaseSettings
+    from .pydantic_stub import Field as _stub_field
+    from .pydantic_stub import validator as _stub_validator
+    BaseSettings = _StubBaseSettings
+    Field = _stub_field
+    validator = _stub_validator
+else:  # pragma: no cover
+    BaseSettings = cast(type[Any], _pydantic.BaseSettings)
+    Field = cast(Callable[..., Any], _pydantic.Field)
+    validator = cast(Callable[..., Any], _pydantic.validator)
 
 
 class CollectorConfig(BaseSettings):

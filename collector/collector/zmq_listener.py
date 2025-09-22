@@ -7,7 +7,10 @@ import time
 from dataclasses import dataclass, field
 from typing import Callable, Dict, Optional
 
-import zmq
+try:  # pragma: no cover
+    import zmq  # type: ignore[import-not-found, import-untyped]
+except ImportError:  # pragma: no cover
+    zmq = None  # type: ignore[assignment]
 
 
 @dataclass
@@ -26,6 +29,8 @@ class ZMQListener:
         endpoints: Dict[str, str],
         callback: Optional[Callable[[str, bytes], None]] = None,
     ) -> None:
+        if zmq is None:
+            raise RuntimeError("pyzmq is required for ZMQListener")
         self.context = zmq.Context.instance()
         self.endpoints = endpoints
         self.callback = callback
@@ -48,6 +53,8 @@ class ZMQListener:
         self.context.term()
 
     def _worker(self, topic: str, endpoint: str) -> None:
+        if zmq is None:
+            raise RuntimeError("pyzmq is required for ZMQListener")
         socket = self.context.socket(zmq.SUB)
         socket.setsockopt(zmq.SUBSCRIBE, topic.encode())
         socket.connect(endpoint)
@@ -64,7 +71,7 @@ class ZMQListener:
                     self.callback(topic, message)
         socket.close(linger=0)
 
-    def status(self) -> Dict[str, Dict[str, float]]:
+    def status(self) -> Dict[str, Dict[str, float | str]]:
         return {
             topic: {
                 "endpoint": metric.endpoint,

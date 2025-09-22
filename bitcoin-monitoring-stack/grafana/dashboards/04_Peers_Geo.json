@@ -1,0 +1,75 @@
+{
+  "title": "04 - Peers & Geo",
+  "uid": "btc-peers",
+  "schemaVersion": 38,
+  "version": 1,
+  "panels": [
+    {
+      "type": "worldmap",
+      "title": "Peers by Country",
+      "gridPos": {"h": 10, "w": 12, "x": 0, "y": 0},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "-100"},
+          "query": "from(bucket: \"$INFLUX_BUCKET\")\n  |> range(start: -5m)\n  |> filter(fn: (r) => r._measurement == \"peers_geo\" and r._field == \"count\")\n  |> last()"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Peer Count",
+      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 0},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "-100"},
+          "query": "from(bucket: \"$INFLUX_BUCKET\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"peers\" and r._field =~ /total|inbound|outbound/)",
+          "format": "time_series"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Top ASNs",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 6},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "-100"},
+          "query": "from(bucket: \"$INFLUX_BUCKET\")\n  |> range(start: -5m)\n  |> filter(fn: (r) => r._measurement == \"peers_asn\")\n  |> last()",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Peer Ping p95 (ms)",
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 10},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "-100"},
+          "query": "from(bucket: \"$INFLUX_BUCKET\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"peers\" and r._field == \"ping_p95_ms\")"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Peer Churn",
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 16},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "-100"},
+          "query": "from(bucket: \"$INFLUX_BUCKET\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"peers\" and r._field =~ /joins_per_min|leaves_per_min/)",
+          "format": "time_series"
+        }
+      ]
+    }
+  ],
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  }
+}

@@ -66,6 +66,8 @@ docker-compose.yml    Orchestrates the optional InfluxDB, Grafana, collector, an
 * [`docs/HARDENING.md`](docs/HARDENING.md) – security considerations when exposing services
   beyond localhost.
 * [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) – symptom-based debugging playbooks.
+* [`docs/PORTAINER.md`](docs/PORTAINER.md) – how to deploy the stack as a Portainer-managed
+  stack using the bundled Compose file.
 
 ### Operating System Notes
 

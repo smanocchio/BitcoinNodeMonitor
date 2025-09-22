@@ -1,0 +1,32 @@
+{
+  "title": "Block Lag High",
+  "condition": "C",
+  "data": [
+    {
+      "refId": "A",
+      "queryType": "Flux",
+      "datasourceUid": "-100",
+      "relativeTimeRange": {"from": 300, "to": 0},
+      "model": {
+        "query": "from(bucket: \"$INFLUX_BUCKET\") |> range(start: -10m) |> filter(fn: (r) => r._measurement == \"blockchain\" and r._field == \"block_lag\") |> aggregateWindow(every: 1m, fn: max)"
+      }
+    }
+  ],
+  "noDataState": "NoData",
+  "execErrState": "Error",
+  "for": "5m",
+  "annotations": {
+    "summary": "Block lag over 2 blocks"
+  },
+  "labels": {},
+  "alertRuleTags": {},
+  "conditions": [
+    {
+      "evaluator": {"params": [2], "type": "gt"},
+      "operator": {"type": "and"},
+      "query": {"params": ["A"]},
+      "reducer": {"type": "max"},
+      "type": "query"
+    }
+  ]
+}

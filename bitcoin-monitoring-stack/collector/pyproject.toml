@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bitcoin-monitoring-collector"
+version = "0.1.0"
+description = "Collector for the Bitcoin Monitoring Stack"
+authors = [{name = "Bitcoin Monitoring Stack"}]
+requires-python = ">=3.11"
+dependencies = [
+  "pydantic>=1.10,<2.0",
+  "requests>=2.31",
+  "tenacity>=8.2",
+  "psutil>=5.9",
+  "influxdb-client>=1.38",
+  "pyzmq>=25.1",
+  "geoip2>=4.7"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.4",
+  "pytest-asyncio>=0.21",
+  "mypy>=1.6",
+  "ruff>=0.1.8"
+]
+
+[tool.mypy]
+python_version = "3.11"
+packages = ["collector"]
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "B", "I"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

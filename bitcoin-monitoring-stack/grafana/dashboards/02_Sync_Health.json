@@ -1,0 +1,60 @@
+{
+  "title": "02 - Sync Health",
+  "uid": "btc-sync",
+  "schemaVersion": 38,
+  "version": 1,
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Verification Progress",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "-100"},
+          "query": "from(bucket: \"$INFLUX_BUCKET\")\n  |> range(start: -12h)\n  |> filter(fn: (r) => r._measurement == \"blockchain\" and r._field == \"verification_progress\")"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Block Interval (s)",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "-100"},
+          "query": "from(bucket: \"$INFLUX_BUCKET\")\n  |> range(start: -12h)\n  |> filter(fn: (r) => r._measurement == \"blockchain\" and r._field == \"block_interval_seconds\")"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "ZMQ Rawblock Rate",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "-100"},
+          "query": "from(bucket: \"$INFLUX_BUCKET\")\n  |> range(start: -12h)\n  |> filter(fn: (r) => r._measurement == \"zmq\" and r._field == \"rawblock_per_min\")"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Reorg Depth",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "-100"},
+          "query": "from(bucket: \"$INFLUX_BUCKET\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"blockchain\" and r._field == \"max_reorg_depth\")"
+        }
+      ]
+    }
+  ],
+  "time": {
+    "from": "now-12h",
+    "to": "now"
+  }
+}

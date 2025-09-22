@@ -1,0 +1,67 @@
+{
+  "id": null,
+  "title": "01 - Overview",
+  "uid": "btc-overview",
+  "schemaVersion": 38,
+  "version": 1,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Block Lag",
+      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 0},
+      "targets": [
+        {
+          "datasource": {"type": "influxdb", "uid": "-100"},
+          "query": "from(bucket: \"$INFLUX_BUCKET\")\n  |> range(start: -5m)\n  |> filter(fn: (r) => r._measurement == \"blockchain\" and r._field == \"block_lag\")\n  |> last()",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Headers vs Blocks",
+      "gridPos": {"h": 8, "w": 12, "x": 4, "y": 0},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "-100"},
+          "query": "from(bucket: \"$INFLUX_BUCKET\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"blockchain\" and r._field =~ /best_height|headers_height/)",
+          "format": "time_series"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "CPU & Memory",
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 4},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "-100"},
+          "query": "from(bucket: \"$INFLUX_BUCKET\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"process\" and r._field =~ /cpu_percent|memory_rss_mb/)",
+          "format": "time_series"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Chainstate Size (GB)",
+      "gridPos": {"h": 4, "w": 4, "x": 16, "y": 0},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "-100"},
+          "query": "from(bucket: \"$INFLUX_BUCKET\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == \"filesystem\" and r._field == \"chainstate_gb\")\n  |> last()",
+          "format": "time_series"
+        }
+      ]
+    }
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  }
+}

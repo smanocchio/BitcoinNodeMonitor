@@ -1,0 +1,86 @@
+version: "3.9"
+
+services:
+  influxdb:
+    image: influxdb:2.7
+    container_name: btc_influxdb
+    restart: unless-stopped
+    environment:
+      INFLUXD_HTTP_BIND_ADDRESS: ${INFLUX_BIND_IP:-127.0.0.1}:8086
+    volumes:
+      - influx-data:/var/lib/influxdb2
+      - ./influx/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+    ports:
+      - "${INFLUX_BIND_IP:-127.0.0.1}:8086:8086"
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  grafana:
+    image: grafana/grafana-oss:10.2.2
+    container_name: btc_grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_SERVER_HTTP_ADDR: ${GRAFANA_BIND_IP:-127.0.0.1}
+      GF_SERVER_HTTP_PORT: 3000
+      GF_SERVER_DOMAIN: localhost
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "${GRAFANA_BIND_IP:-127.0.0.1}:3000:3000"
+    depends_on:
+      influxdb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  collector:
+    build:
+      context: ./collector
+    container_name: btc_collector
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      influxdb:
+        condition: service_healthy
+    volumes:
+      - ${BITCOIN_DATADIR:-~/.bitcoin}:${BITCOIN_DATADIR:-/root/.bitcoin}:ro
+    healthcheck:
+      test: ["CMD", "python", "-m", "collector", "--healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  geoipupdate:
+    image: ghcr.io/maxmind/geoipupdate:v6.0
+    container_name: btc_geoipupdate
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      GEOIPUPDATE_ACCOUNT_ID: ${GEOIP_ACCOUNT_ID:-}
+      GEOIPUPDATE_LICENSE_KEY: ${GEOIP_LICENSE_KEY:-}
+      GEOIPUPDATE_FREQUENCY: ${GEOIP_UPDATE_FREQUENCY_DAYS:-7}
+      GEOIPUPDATE_EDITION_IDS: GeoLite2-City GeoLite2-ASN
+    volumes:
+      - geoip-data:/usr/share/GeoIP
+      - ./geoip/geoipupdate.conf.tmpl:/etc/GeoIP.conf:ro
+    healthcheck:
+      test: ["CMD", "geoipupdate", "-V"]
+      interval: 1h
+      timeout: 30s
+      retries: 3
+
+volumes:
+  influx-data:
+  grafana-data:
+  geoip-data:

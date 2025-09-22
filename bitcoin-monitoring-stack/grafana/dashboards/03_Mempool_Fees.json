@@ -1,0 +1,62 @@
+{
+  "title": "03 - Mempool & Fees",
+  "uid": "btc-mempool",
+  "schemaVersion": 38,
+  "version": 1,
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Mempool Transactions",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "-100"},
+          "query": "from(bucket: \"$INFLUX_BUCKET\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"mempool\" and r._field == \"tx_count\")"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Virtual Size (MB)",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "-100"},
+          "query": "from(bucket: \"$INFLUX_BUCKET\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"mempool\" and r._field == \"vsize_mb\")"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Fee Estimates (sat/vB)",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "-100"},
+          "query": "from(bucket: \"$INFLUX_BUCKET\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"mempool\" and r._field =~ /fee_fast|fee_slow/)",
+          "format": "time_series"
+        }
+      ]
+    },
+    {
+      "type": "bargauge",
+      "title": "Fee Histogram",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "influxdb", "uid": "-100"},
+          "query": "from(bucket: \"$INFLUX_BUCKET\")\n  |> range(start: -5m)\n  |> filter(fn: (r) => r._measurement == \"mempool_hist\")\n  |> last()",
+          "format": "table"
+        }
+      ]
+    }
+  ],
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  }
+}

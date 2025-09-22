@@ -1,122 +1,107 @@
 # Configuration Reference
 
-All configuration is managed via the `.env` file (copied from `.env.example`). Docker Compose passes these variables to the services at runtime.
+The collector relies on environment variables that are loaded into the `CollectorConfig`
+model. Docker Compose uses the same variables to configure InfluxDB, Grafana, and GeoIP
+services. This document explains every option and how they interact.
 
-## Bitcoin Core setup (important)
-The collector pulls metrics from Bitcoin Core via RPC (and optionally ZMQ).
-Bitcoin Core stays unchanged; the collector simply reads via RPC/ZMQ.
+## Configuration Layers
 
-Minimal bitcoin.conf:
+1. **`.env` file** – optional file read by Docker Compose and `pydantic-settings`. Copy
+   `.env.example` and adjust it for your deployment.
+2. **Environment variables** – overrides passed at runtime take precedence over values in
+   `.env`.
+3. **Defaults** – baked into `collector/config.py` and reflect sensible mainnet settings.
 
-ini
-Copy code
-server=1
-rpcbind=127.0.0.1
-# If remote collector, allow your LAN and/or create a read-only RPC user:
-# rpcallowip=192.168.0.0/16
+## Bitcoin Core Connectivity
 
-# Optional (recommended):
-zmqpubrawblock=tcp://127.0.0.1:28332
-zmqpubrawtx=tcp://127.0.0.1:28333
-Set matching envs in .env:
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `BITCOIN_RPC_HOST` | `127.0.0.1` | Hostname/IP for the JSON-RPC endpoint. |
+| `BITCOIN_RPC_PORT` | `8332` | RPC port. Adjust for testnet/regtest. |
+| `BITCOIN_RPC_USER` / `BITCOIN_RPC_PASSWORD` | _empty_ | Explicit RPC credentials. Leave blank when using cookie auth. |
+| `BITCOIN_RPC_COOKIE_PATH` | `~/.bitcoin/.cookie` | Fallback cookie location. The collector also searches inside the mounted data directory. |
+| `BITCOIN_NETWORK` | `mainnet` | Tag applied to every metric. Supports custom values such as `testnet` or `signet`. |
+| `BITCOIN_DATADIR` | `~/.bitcoin` | Mounted into the collector container to access the cookie file and configuration. |
+| `BITCOIN_CHAINSTATE_DIR` | `~/.bitcoin/chainstate` | Used when disk utilisation metrics are enabled. |
+| `BITCOIN_ZMQ_RAWBLOCK` | `tcp://127.0.0.1:28332` | Endpoint for raw block notifications. |
+| `BITCOIN_ZMQ_RAWTX` | `tcp://127.0.0.1:28333` | Endpoint for raw transaction notifications. |
+| `FULCRUM_STATS_URL` | `http://127.0.0.1:8080/stats` | Optional Fulcrum/Electrs stats endpoint. Leave empty to disable. |
 
-pgsql
-Copy code
-BITCOIN_RPC_HOST/PORT, BITCOIN_RPC_COOKIE_PATH (or USER/PASSWORD)
-BITCOIN_ZMQ_RAWBLOCK, BITCOIN_ZMQ_RAWTX  (if you enabled ZMQ)
+The collector automatically reads the cookie file when both username and password are empty.
+If the cookie cannot be found, make sure the data directory is mounted read-only into the
+container (see `docker-compose.yml`).
 
-## Bitcoin Core
+## InfluxDB Options
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `BITCOIN_RPC_HOST` | Hostname or IP for Bitcoin Core RPC interface. | `127.0.0.1` |
-| `BITCOIN_RPC_PORT` | RPC port. | `8332` |
-| `BITCOIN_RPC_USER` | RPC username (leave blank for cookie auth). | _empty_ |
-| `BITCOIN_RPC_PASSWORD` | RPC password (leave blank for cookie auth). | _empty_ |
-| `BITCOIN_RPC_COOKIE_PATH` | Path to `.cookie` file; autodetected if left at default and local. | `~/.bitcoin/.cookie` |
-| `BITCOIN_NETWORK` | Network name (`mainnet`, `testnet`, `signet`, `regtest`). Controls labels and retention defaults. | `mainnet` |
-| `BITCOIN_DATADIR` | Mount path for Bitcoin data directory (read-only). Used for process metrics and disk stats. | `~/.bitcoin` |
-| `BITCOIN_CHAINSTATE_DIR` | Path to the `chainstate` directory (for disk usage). | `~/.bitcoin/chainstate` |
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `INFLUX_URL` | `http://influxdb:8086` | Base URL for the InfluxDB API. Point to an external instance to reuse existing infrastructure. |
+| `INFLUX_ORG` | `bitcoin` | Organisation created during bootstrap and used by Grafana. |
+| `INFLUX_BUCKET` | `btc_metrics` | Bucket name that stores metrics. |
+| `INFLUX_RETENTION_DAYS` | `60` | Retention period applied during bootstrap. |
+| `INFLUX_SETUP_USERNAME` / `INFLUX_SETUP_PASSWORD` | `admin` / `admin123` | Credentials used once during bootstrap to create the initial API token. |
+| `INFLUX_TOKEN` | _empty_ | If provided, overrides the generated token and is used by both the collector and Grafana. |
+| `INFLUX_BIND_IP` | `127.0.0.1` | Bind address used when exposing the InfluxDB UI through Docker Compose port mapping. |
+| `USE_EXTERNAL_INFLUX` | `0` | Set to `1` to skip starting the bundled InfluxDB service. |
 
-## ZMQ Streams
+The bootstrap script writes the active token to `/var/lib/influxdb2/.influxdbv2/token`. The
+collector reads the file when `INFLUX_TOKEN` is empty.
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `BITCOIN_ZMQ_RAWBLOCK` | ZMQ endpoint for raw block messages. | `tcp://127.0.0.1:28332` |
-| `BITCOIN_ZMQ_RAWTX` | ZMQ endpoint for raw transaction messages. | `tcp://127.0.0.1:28333` |
+## Grafana Options
 
-## Optional Fulcrum/Electrs
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` | `admin` / `admin` | Initial administrator credentials. |
+| `GRAFANA_BIND_IP` | `127.0.0.1` | Bind address for the HTTP server. Combine with `EXPOSE_UI=1` to listen beyond localhost. |
+| `EXPOSE_UI` | `0` | When set to `1`, Docker Compose binds Grafana to all interfaces. See hardening guidance before exposing externally. |
+| `USE_EXTERNAL_GRAFANA` | `0` | Set to `1` to skip the bundled Grafana container. |
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `FULCRUM_STATS_URL` | HTTP stats endpoint (Fulcrum `/stats` or Electrs JSON). Leave blank to disable. | `http://127.0.0.1:8080/stats` |
+Grafana provisioning picks up the same InfluxDB credentials that the collector uses, so
+changes to `INFLUX_*` variables should be reflected here as well.
 
-## InfluxDB
+## Collector Behaviour Flags
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `USE_EXTERNAL_INFLUX` | `0` to run bundled InfluxDB, `1` to use an existing instance. | `0` |
-| `INFLUX_URL` | URL used by the collector to write data. Matches docker-compose service name in bundled mode. | `http://influxdb:8086` |
-| `INFLUX_ORG` | InfluxDB organization name created during bootstrap. | `bitcoin` |
-| `INFLUX_BUCKET` | Bucket where metrics are stored. | `btc_metrics` |
-| `INFLUX_RETENTION_DAYS` | Retention period for metrics (used during bootstrap). | `60` |
-| `INFLUX_SETUP_USERNAME` | Admin username created on first run. | `admin` |
-| `INFLUX_SETUP_PASSWORD` | Admin password created on first run. Change after setup. | `admin123` |
-| `INFLUX_TOKEN` | API token for collector writes. Generated by `influx/init.sh` if left blank. Required for external InfluxDB. | _empty_ |
+| Variable | Default | Effect |
+|----------|---------|--------|
+| `SCRAPE_INTERVAL_FAST` | `5` | Seconds between fast loop executions. |
+| `SCRAPE_INTERVAL_SLOW` | `30` | Seconds between slow loop executions. |
+| `ENABLE_BLOCK_INTERVALS` | `1` | Placeholder flag for enabling additional block cadence analytics. |
+| `ENABLE_SOFTFORK_SIGNAL` | `1` | Placeholder flag for signalling dashboards. |
+| `ENABLE_PEER_QUALITY` | `1` | Enables peer latency aggregations. |
+| `ENABLE_PROCESS_METRICS` | `1` | Collects CPU, memory, and file descriptor counts for the `bitcoind` process using `psutil`. |
+| `ENABLE_DISK_IO` | `1` | Samples disk usage for the chainstate directory. |
+| `ENABLE_PEER_CHURN` | `1` | Reserved for future peer churn calculations. |
+| `ENABLE_ASN_STATS` | `1` | Enables ASN lookup fields when GeoIP data is available. |
 
-## Grafana
+Flags marked as placeholders do not currently toggle additional logic but are included for
+future compatibility with dashboards.
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `USE_EXTERNAL_GRAFANA` | `0` to run bundled Grafana, `1` to use your own Grafana instance. | `0` |
-| `GRAFANA_ADMIN_USER` | Initial Grafana admin username. | `admin` |
-| `GRAFANA_ADMIN_PASSWORD` | Initial Grafana admin password. | `admin` |
-| `EXPOSE_UI` | `0` keeps Grafana/Influx bound to localhost; set to `1` to listen on all interfaces. Pair with firewall/proxy. | `0` |
-| `GRAFANA_BIND_IP` | Optional override for Grafana bind IP (`127.0.0.1` or `0.0.0.0`). Auto-set by entrypoint when `EXPOSE_UI` is changed. | _auto_ |
-| `INFLUX_BIND_IP` | Optional override for Influx bind IP. | _auto_ |
+## Mempool Histogram Settings
 
-## Feature Flags
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MEMPOOL_HIST_SOURCE` | `none` | Set to `core_rawmempool` to bucket transactions using RPC data or `mempool_api` to query an external API. |
+| `MEMPOOL_API_BASE` | `http://127.0.0.1:3006` | Base URL for the external API when `MEMPOOL_HIST_SOURCE=mempool_api`. The collector appends `/api/v1/fees/recommended`. |
 
-Toggle collection modules on/off (use `0` or `1`).
+When histogram collection is disabled (`none`), the collector skips external calls and no
+`mempool_hist` measurement is written.
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `ENABLE_BLOCK_INTERVALS` | Compute rolling block interval statistics. | `1` |
-| `ENABLE_SOFTFORK_SIGNAL` | Collect BIP9 soft-fork signalling metrics. | `1` |
-| `ENABLE_PEER_QUALITY` | Gather peer version, ping, and geo metrics. | `1` |
-| `ENABLE_PROCESS_METRICS` | Include CPU, RAM, open file descriptors. | `1` |
-| `ENABLE_DISK_IO` | Sample disk IO throughput via `psutil`. | `1` |
-| `ENABLE_PEER_CHURN` | Track joins/leaves per minute. | `1` |
-| `ENABLE_ASN_STATS` | Resolve ASN/ISP counts using GeoIP ASN database. | `1` |
+## GeoIP Update Parameters
 
-## Mempool Histogram
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `GEOIP_ACCOUNT_ID` / `GEOIP_LICENSE_KEY` | _empty_ | MaxMind account credentials required to download GeoLite2 databases. |
+| `GEOIP_UPDATE_FREQUENCY_DAYS` | `7` | How often `geoipupdate` refreshes the databases. |
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `MEMPOOL_HIST_SOURCE` | `none`, `core_rawmempool`, or `mempool_api`. | `none` |
-| `MEMPOOL_API_BASE` | Base URL for mempool.space API clone when using `mempool_api`. | `http://127.0.0.1:3006` |
+If credentials are omitted the update container will fail gracefully; peer metrics will still
+collect counts but without country/ASN enrichment.
 
-## Collector Polling
+## Customising for Testnet or Signet
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `SCRAPE_INTERVAL_FAST` | Interval (seconds) for fast loop (block height, mempool). | `5` |
-| `SCRAPE_INTERVAL_SLOW` | Interval (seconds) for slower metrics (disk usage, peers). | `30` |
+* Set `BITCOIN_NETWORK` to the desired name for tagging.
+* Override `BITCOIN_RPC_PORT` (e.g. `18332` for testnet) and adjust ZMQ ports as configured
+  in `bitcoin.conf`.
+* Consider reducing retention or adjusting scrape intervals for small nodes.
 
-## GeoIP
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `GEOIP_ACCOUNT_ID` | MaxMind account ID. Required for downloads. | _empty_ |
-| `GEOIP_LICENSE_KEY` | MaxMind license key. Required for downloads. | _empty_ |
-| `GEOIP_UPDATE_FREQUENCY_DAYS` | How often to refresh databases. | `7` |
-
-## Advanced Overrides
-
-These rarely need changes:
-
-- `COLLECTOR_LOG_LEVEL` (default `INFO`) controls log verbosity.
-- `COLLECTOR_HEALTHCHECK_TIMEOUT` (default `15`) used by healthcheck CLI.
-- `INFLUX_SETUP_RETENTION` (auto-calculated from `INFLUX_RETENTION_DAYS`).
-
-All variables are validated at startup by the collector; errors are logged with suggested fixes.
+With these options you can tailor the monitoring stack for home nodes, staging environments,
+or production deployments.

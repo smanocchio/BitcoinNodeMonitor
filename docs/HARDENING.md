@@ -1,92 +1,57 @@
-# Hardening Guide
+# Security Hardening
 
-The monitoring stack ships with conservative defaults (loopback-only bindings, read-only mounts). Follow these steps before exposing services beyond localhost.
+The default Docker Compose configuration binds all services to localhost for safety. If you
+intend to expose dashboards or APIs beyond a trusted machine, apply the hardening
+recommendations below.
 
-## 1. Restrict Access
+## Network Exposure
 
-- Keep `EXPOSE_UI=0` unless you have a firewall protecting port `3000` (Grafana) and `8086` (InfluxDB).
-- If you must expose to your LAN, set in `.env`:
-  ```
-  EXPOSE_UI=1
-  GRAFANA_BIND_IP=0.0.0.0
-  INFLUX_BIND_IP=0.0.0.0
-  ```
-  Then ensure your LAN firewall blocks internet access and apply the protections below.
+* Keep `EXPOSE_UI=0` unless you need remote Grafana access. When enabling remote access,
+  restrict exposure using a reverse proxy with TLS and authentication (for example, Nginx or
+  Traefik) instead of publishing Docker ports directly.
+* Place the monitoring stack on a dedicated network segment or VPN when it needs to reach a
+  remote Bitcoin Core instance. Avoid exposing RPC ports publicly.
+* Configure firewall rules so only the collector host can reach the Bitcoin Core RPC and ZMQ
+  endpoints.
 
-## 2. Create a Read-Only RPC User
+## Secrets Management
 
-Edit `bitcoin.conf`:
+* Store `.env` with restrictive file permissions (`chmod 600 .env`).
+* Prefer cookie-based authentication for Bitcoin Core when the collector runs on the same
+  host. Cookies rotate automatically and never reside in version control.
+* Rotate the InfluxDB API token regularly and avoid committing it to the repository. Use
+  Docker secrets or environment-specific secret stores when running in production.
 
-```
-rpcuser=monitor
-rpcpassword=<strong-unique-password>
-rpcwhitelist=monitor@127.0.0.1
-rpcauth=<generated using bitcoin-cli rpcuser ...>
-```
+## Service Accounts
 
-Restart Bitcoin Core and update `.env` with the new credentials. Avoid sharing your full-access wallet RPC credentials.
+* Create dedicated OS users when running Docker on a multi-user system so that only trusted
+  administrators can read data volumes.
+* In hosted environments, deploy InfluxDB and Grafana with distinct credentials for the
+  collector and the dashboard viewers. Grafana supports organisation and role-based access
+  control to limit dashboard modifications.
 
-## 3. Rotate InfluxDB and Grafana Passwords
+## TLS and Encryption
 
-- After first login, change the Grafana admin password under **Administration → Users**.
-- Run `docker compose exec influxdb influx auth list` to retrieve tokens. Regenerate or scope tokens to write-only for the collector.
+* Terminate TLS at the reverse proxy in front of Grafana if exposing over the internet.
+* For external InfluxDB deployments, prefer HTTPS endpoints (`INFLUX_URL=https://...`) and
+  validate certificates. Use mutual TLS when offered by the service provider.
+* Secure RPC traffic between the collector and Bitcoin Core with an SSH tunnel or VPN when
+  traversing untrusted networks.
 
-## 4. Enable HTTPS via Reverse Proxy
+## System Updates
 
-Place Grafana and InfluxDB behind a TLS-terminating proxy. Examples below bind to `127.0.0.1` and re-publish securely.
+* Rebuild the collector container periodically (`docker compose build collector`) to pick up
+  dependency patches such as `requests`, `psutil`, and `pyzmq`.
+* Track upstream releases of InfluxDB, Grafana, and `geoipupdate` to inherit security fixes.
+* Subscribe to Bitcoin Core release notes to ensure RPC/ZMQ interfaces remain compatible.
 
-### Caddy Example
+## Auditing and Logging
 
-```
-monitor.example.com {
-  reverse_proxy 127.0.0.1:3000
-  header Content-Security-Policy "frame-ancestors 'self'"
-}
-```
+* Enable audit logging in Grafana for administrator actions if operating in a team
+  environment.
+* Export InfluxDB logs to your central logging solution to monitor authentication failures or
+  unusual query patterns.
+* Keep Docker daemon logs and system package updates in your existing compliance pipeline.
 
-### Traefik (docker-compose snippet)
-
-```
-  traefik:
-    image: traefik:v2.10
-    command:
-      - "--entrypoints.web.address=:80"
-      - "--providers.docker=true"
-    ports:
-      - "80:80"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-
-  grafana:
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.grafana.rule=Host(`monitor.example.com`)"
-      - "traefik.http.routers.grafana.entrypoints=web"
-      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
-```
-
-Add TLS (`--entrypoints.websecure.address=:443`, certificates, etc.) as desired.
-
-## 5. Lock Down Grafana
-
-- Disable user sign-up (`GF_USERS_ALLOW_SIGN_UP=false`, already set).
-- Configure auth proxies/OAuth if integrating with an identity provider.
-- Limit alert contact points to trusted channels.
-
-## 6. Secure GeoIP Data
-
-- GeoLite2 licenses restrict sharing. Store the downloaded databases on encrypted storage if they contain sensitive logs.
-- Set `GEOIP_UPDATE_FREQUENCY_DAYS` to a reasonable value (weekly) to reduce attack surface.
-
-## 7. System Hardening
-
-- Run Docker as a non-root user where possible.
-- Keep host OS patched and Bitcoin Core updated.
-- Monitor Docker logs for unexpected access attempts.
-
-## 8. Backups & Disaster Recovery
-
-- Back up the `influx-data` and `grafana-data` volumes if dashboards or retention policies are critical.
-- Export Grafana dashboards periodically (`Dashboards → JSON model → Save to file`).
-
-By following these practices you can safely expose the monitoring stack to a trusted network while minimizing risk.
+Applying these controls reduces the risk of credential leakage or remote exploitation while
+still allowing the monitoring stack to provide actionable insights.

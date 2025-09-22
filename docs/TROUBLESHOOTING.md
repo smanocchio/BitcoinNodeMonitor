@@ -1,57 +1,120 @@
-# Troubleshooting
+# Troubleshooting Playbook
 
-## Collector cannot connect to Bitcoin RPC
+Use this playbook to diagnose common issues observed when running the Bitcoin Node
+Monitoring Stack. Each section lists symptoms, likely causes, and concrete steps to
+investigate.
 
-- **Symptom**: `401 Unauthorized` or `connection refused` in collector logs.
-- **Fix**: Verify `BITCOIN_RPC_HOST`, `PORT`, and credentials. If using cookie auth, ensure the `.cookie` file is mounted read-only into the collector container (check volume mapping). On Windows paths, escape backslashes or use WSL paths (`/mnt/c/...`).
+## Collector Fails to Start
 
-## RPC password contains special characters
+**Symptoms**
 
-- Wrap the value in single quotes when editing `.env` or escape special characters according to shell rules. Alternatively, create a dedicated read-only RPC user (see [`HARDENING.md`](HARDENING.md)).
+* Container exits immediately.
+* Logs show `RuntimeError: pyzmq is required for ZMQListener` or missing dependency errors.
 
-## ZMQ metrics show `disconnected`
+**Actions**
 
-- Confirm that `bitcoin.conf` includes lines such as `zmqpubrawblock=tcp://127.0.0.1:28332` and `zmqpubrawtx=tcp://127.0.0.1:28333`.
-- Ensure firewalls permit the ZMQ ports and that the endpoints in `.env` match your configuration.
+1. Rebuild the collector image to ensure dependencies are installed:
+   `docker compose build collector`.
+2. Verify that the Python runtime is ≥3.11 (set in `collector/pyproject.toml`).
+3. Ensure the host provides network connectivity to the RPC and ZMQ endpoints.
 
-## Grafana shows “Datasource not found”
+## RPC Authentication Errors
 
-- InfluxDB may not have finished bootstrapping. Run `docker compose logs influxdb` and wait for the `Initialization complete` message.
-- If `INFLUX_TOKEN` is blank and bootstrap was interrupted, remove the `influx-data` volume (`docker volume rm bitcoin-monitoring-stack_influx-data`) and restart.
+**Symptoms**
 
-## Windows path quirks
+* Collector logs display HTTP 401 or messages referencing `RPC error -32601`.
+* Health check reports failure to load configuration.
 
-- When using Docker Desktop with WSL, ensure the Bitcoin data directory is shared with Docker Desktop.
-- Use `/mnt/c/...` paths in `.env`. If Grafana dashboards fail to load due to file permissions, run `wsl --shutdown` and restart Docker Desktop.
+**Actions**
 
-## GeoIP updates fail
+1. Confirm `BITCOIN_RPC_USER`/`BITCOIN_RPC_PASSWORD` in `.env` match the node.
+2. When using cookie auth, verify the cookie file path is mounted:
+   `docker compose exec collector ls /root/.bitcoin/.cookie`.
+3. Inspect `bitcoin.conf` for `rpcallowip` restrictions preventing the collector from
+   connecting.
 
-- Check that `GEOIP_ACCOUNT_ID` and `GEOIP_LICENSE_KEY` are set. Free MaxMind accounts require EULA acceptance before downloads.
-- If you don't need GeoIP, leave credentials blank and the collector will skip enrichment.
+## Missing ZMQ Metrics
 
-## Grafana alert not firing
+**Symptoms**
 
-- Unified alerting requires evaluation every minute. Ensure the rule's evaluation interval is shorter than the duration condition.
-- Verify the query returns data by pressing **Preview** within the rule editor.
-- Confirm a contact point is attached. Without one, alerts remain in the “No contact point” state.
+* Grafana panels showing ZMQ staleness display `NaN` or large `seconds_since` values.
+* Collector logs warn about timeouts waiting for messages.
 
-## Collector healthcheck failing
+**Actions**
 
-- Run `docker compose logs collector` to inspect errors.
-- Validate that InfluxDB token is present and Grafana/Influx hostnames resolve (DNS issues on custom networks can cause timeouts).
-- If using feature flags, disable modules one-by-one (set to `0`) to isolate the failing component.
+1. Confirm the ZMQ endpoints in `.env` match `bitcoin.conf`.
+2. Ensure the host firewall allows the collector to connect to the ZMQ ports.
+3. Restart Bitcoin Core to re-establish ZMQ publishers if necessary.
 
-## Dashboard panels empty
+## InfluxDB Write Failures
 
-- Ensure the collector has been running for at least a few minutes.
-- If using testnet/signet, adjust the dashboard variable `Network` to match.
+**Symptoms**
 
-## Resetting the stack
+* Collector logs contain `requests.exceptions.HTTPError` or `Failed to write points`.
+* Grafana dashboards stop updating.
 
-```bash
-docker compose down -v
-rm -rf grafana/data influx/data
-docker compose up -d
-```
+**Actions**
 
-This removes persisted data (dashboards and metrics). Use only when you need a clean slate.
+1. Check InfluxDB health: `docker compose exec influxdb influx ping`.
+2. Ensure the bucket and organisation names match the environment variables.
+3. If pointing at an external InfluxDB, verify the API token has the `write` permission for
+   the bucket.
+4. Inspect available disk space on the InfluxDB host.
+
+## Grafana Cannot Authenticate
+
+**Symptoms**
+
+* Login screen rejects credentials defined in `.env`.
+
+**Actions**
+
+1. If you changed the password inside Grafana, update `.env` so container restarts retain the
+   new value.
+2. Delete the `grafana-data` volume to reset credentials (warning: removes saved dashboards).
+3. Check the container logs for messages about LDAP or OAuth if custom auth was configured.
+
+## GeoIP Data Missing
+
+**Symptoms**
+
+* Peer dashboards show “Unknown” for country or ASN fields.
+
+**Actions**
+
+1. Ensure `geoipupdate` container is running: `docker compose ps geoipupdate`.
+2. Review `docker compose logs geoipupdate` for authentication errors. Invalid MaxMind
+   credentials will be reported here.
+3. Confirm the collector sees the databases:
+   `docker compose exec collector ls /usr/share/GeoIP/GeoLite2-*.mmdb`.
+4. When credentials are corrected, restart both `geoipupdate` and `collector` containers.
+
+## General Diagnostics
+
+* Use `docker compose logs <service>` with the `--since` flag to filter recent events.
+* Run ad-hoc RPC commands from the collector container:
+
+  ```bash
+  docker compose exec collector python - <<'PY'
+  from collector.bitcoin_rpc import BitcoinRPC
+  from collector.config import load_config
+
+  cfg = load_config()
+  rpc = BitcoinRPC(
+      f"http://{cfg.bitcoin_rpc_host}:{cfg.bitcoin_rpc_port}",
+      username=cfg.bitcoin_rpc_user,
+      password=cfg.bitcoin_rpc_password,
+      cookie=cfg.cookie_path and (cfg.cookie_path.read_text().split(':', 1))
+  )
+  print(rpc.get_blockchain_info())
+  PY
+  ```
+
+* Query InfluxDB directly to verify data presence:
+
+  ```bash
+  docker compose exec influxdb influx query 'from(bucket:"btc_metrics") |> range(start: -1h) |> count()'
+  ```
+
+By following these targeted steps you can resolve most issues without needing to rebuild the
+entire environment.

@@ -9,7 +9,8 @@ description = "Collector for the Bitcoin Monitoring Stack"
 authors = [{name = "Bitcoin Monitoring Stack"}]
 requires-python = ">=3.11"
 dependencies = [
-  "pydantic>=1.10,<2.0",
+  "pydantic>=2.4,<3.0",
+  "pydantic-settings>=2.2,<3.0",
   "requests>=2.31",
   "tenacity>=8.2",
   "psutil>=5.9",
@@ -19,17 +20,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = [
-  "pytest>=7.4",
-  "pytest-asyncio>=0.21",
-  "mypy>=1.6",
-  "ruff>=0.1.8"
-]
-
-[tool.mypy]
-python_version = "3.11"
-packages = ["collector"]
-ignore_missing_imports = true
+dev = ["mypy>=1.10", "types-requests", "ruff", "pytest"]
 
 [tool.ruff]
 line-length = 100

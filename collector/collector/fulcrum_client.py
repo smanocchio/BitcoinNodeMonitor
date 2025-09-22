@@ -4,14 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-try:  # pragma: no cover
-    import requests  # type: ignore[import-untyped]
-except ImportError:  # pragma: no cover
-    class _Requests:
-        def get(self, *args: Any, **kwargs: Any) -> Any:
-            raise RuntimeError("requests library is required for Fulcrum stats")
-
-    requests = _Requests()  # type: ignore[assignment]
+import requests
 
 
 class FulcrumClient:

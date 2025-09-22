@@ -15,6 +15,29 @@
        └───────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
+## Bitcoin Core setup (important)
+The collector pulls metrics from Bitcoin Core via RPC (and optionally ZMQ).
+You do not point Bitcoin Core to a Prometheus or collector endpoint.
+
+Minimal bitcoin.conf:
+
+ini
+Copy code
+server=1
+rpcbind=127.0.0.1
+# If remote collector, allow your LAN and/or create a read-only RPC user:
+# rpcallowip=192.168.0.0/16
+
+# Optional (recommended):
+zmqpubrawblock=tcp://127.0.0.1:28332
+zmqpubrawtx=tcp://127.0.0.1:28333
+Set matching envs in .env:
+
+pgsql
+Copy code
+BITCOIN_RPC_HOST/PORT, BITCOIN_RPC_COOKIE_PATH (or USER/PASSWORD)
+BITCOIN_ZMQ_RAWBLOCK, BITCOIN_ZMQ_RAWTX  (if you enabled ZMQ)
+
 ## Components
 
 - **Bitcoin Core** – Provides blockchain, mempool, and network data through RPC and ZMQ streams.

@@ -6,20 +6,8 @@ import json
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
-try:  # pragma: no cover
-    import requests  # type: ignore[import-untyped]
-    from requests.auth import HTTPBasicAuth  # type: ignore[import-untyped]
-except ImportError:  # pragma: no cover
-    class HTTPBasicAuth:  # type: ignore[too-few-public-methods, no-redef]
-        def __init__(self, username: str, password: str) -> None:
-            self.username = username
-            self.password = password
-
-    class _Requests:
-        def post(self, *args: Any, **kwargs: Any) -> Any:
-            raise RuntimeError("requests library is required to call Bitcoin RPC")
-
-    requests = _Requests()  # type: ignore[assignment]
+import requests
+from requests.auth import HTTPBasicAuth
 
 
 @dataclass

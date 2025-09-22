@@ -6,7 +6,11 @@ import argparse
 import asyncio
 import logging
 import time
-from typing import Any, Callable, Dict, List, TypeVar
+from typing import Dict, List
+
+import requests
+from requests import RequestException
+from tenacity import RetryError, retry, stop_after_attempt, wait_exponential
 
 from .autodetect import find_cookie, format_cookie_auth
 from .bitcoin_rpc import BitcoinRPC
@@ -25,55 +29,6 @@ from .metrics import (
 )
 from .process_metrics import collect_disk_usage, collect_process_metrics
 from .zmq_listener import ZMQListener
-
-RequestException: type[Exception]
-
-try:  # pragma: no cover
-    import requests  # type: ignore[import-untyped]
-except ImportError:  # pragma: no cover
-    class _RequestException(RuntimeError):
-        pass
-
-    class _Requests:
-        def get(self, *args: Any, **kwargs: Any) -> Any:
-            raise _RequestException("requests is required for collector runtime")
-
-        def post(self, *args: Any, **kwargs: Any) -> Any:
-            raise _RequestException("requests is required for collector runtime")
-
-    requests = _Requests()  # type: ignore[assignment]
-    RequestException = _RequestException
-else:
-    RequestException = requests.RequestException  # type: ignore[attr-defined]
-
-TFunc = TypeVar("TFunc", bound=Callable[..., Any])
-
-RetryError: type[Exception]
-
-try:  # pragma: no cover
-    import tenacity  # type: ignore[import-not-found, import-untyped]
-except ImportError:  # pragma: no cover
-    class _RetryError(Exception):
-        """Fallback exception raised when tenacity is unavailable."""
-
-    RetryError = _RetryError
-
-    def retry(*args: Any, **kwargs: Any):  # type: ignore[no-untyped-def]
-        def decorator(func: TFunc) -> TFunc:
-            return func
-
-        return decorator
-
-    def stop_after_attempt(*args: Any, **kwargs: Any):  # type: ignore[return-value]
-        return None
-
-    def wait_exponential(*args: Any, **kwargs: Any):  # type: ignore[return-value]
-        return None
-else:
-    RetryError = tenacity.RetryError  # type: ignore[attr-defined]
-    retry = tenacity.retry  # type: ignore[attr-defined]
-    stop_after_attempt = tenacity.stop_after_attempt  # type: ignore[attr-defined]
-    wait_exponential = tenacity.wait_exponential  # type: ignore[attr-defined]
 
 LOGGER = logging.getLogger(__name__)
 

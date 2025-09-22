@@ -2,125 +2,233 @@
 
 An **easy-deploy** monitoring stack for **Bitcoin Core** node runners. One command brings up a Python collector, **InfluxDB v2**, **Grafana** dashboards, and optional **GeoIP** enrichment—tailored for home node operators.
 
-> **Screenshots:** This repo is text-only (no binary assets). To capture your own, start the stack and in Grafana use **Share → Export → Download PNG** on the “01 Overview” dashboard (you can save it locally at `docs/images/overview-dashboard.png` if you like).
+---
 
-## Features
+## Table of Contents
+- [What You Get](#what-you-get)
+- [How It Works](#how-it-works)
+- [Requirements](#requirements)
+- [Quick Start](#quick-start)
+  - [Option A — Bundled InfluxDB + Bundled Grafana](#option-a--bundled-influxdb--bundled-grafana)
+  - [Option B — Existing InfluxDB, Bundled Grafana](#option-b--existing-influxdb-bundled-grafana)
+  - [Option C — Existing InfluxDB + Existing Grafana](#option-c--existing-influxdb--existing-grafana)
+- [Bitcoin Core Setup](#bitcoin-core-setup)
+- [Configuration Cheatsheet](#configuration-cheatsheet)
+- [Security Defaults](#security-defaults)
+- [GeoIP Enrichment (Optional)](#geoip-enrichment-optional)
+- [Verify It’s Working](#verify-its-working)
+- [Grafana Alerting (Optional)](#grafana-alerting-optional)
+- [Common Pitfalls](#common-pitfalls)
+- [Uninstall / Clean Up](#uninstall--clean-up)
+- [License](#license)
+- [Prometheus Note](#prometheus-note)
+
+---
+
+## What You Get
 - **Collector → InfluxDB → Grafana** (no Prometheus endpoint)
 - Blockchain sync & lag, mempool & fees, peer quality (geo/ASN), resource usage
-- Optional **Electrs/Fulcrum** stats
+- Optional **Electrs/Fulcrum** `/stats` metrics
 - **Four prebuilt dashboards** (Overview, Sync & Health, Mempool & Fees, Peers & Geo)
-- **Grafana-native alerting** (create rules in Grafana UI)
-- Optional **GeoIP** enrichment via free MaxMind DBs (fetched at runtime)
+- **Grafana-native alerting** (create alert rules in Grafana UI)
+- Optional **GeoIP** enrichment via free MaxMind DBs (fetched at runtime; no IPs persisted—only country/ASN counts)
+
+---
+
+## How It Works
+
+```
++----------------+   RPC (+optional ZMQ)   +-----------+
+|  Bitcoin Core  | <--------------------- | Collector |
+|   (bitcoind)   |                        | (Python)  |
++----------------+                        +-----------+
+          | Influx line protocol
+          v
+    +-----------+
+    | InfluxDB  |
+    |    v2     |
+    +-----------+
+          | Flux queries
+          v
+    +-----------+
+    | Grafana   |
+    | Dashboards|
+    |  Alerting |
+    +-----------+
+```
+
+---
 
 ## Requirements
-- Docker Engine + Docker Compose Plugin (v2+)
+- Docker Engine + Docker Compose Plugin (v2)
 - A running **Bitcoin Core** with RPC enabled (ZMQ optional but recommended)
 
-## Quick Start (choose one)
+---
+
+## Quick Start
+
 ### Option A — Bundled InfluxDB + Bundled Grafana (easiest)
 ```bash
 cp .env.example .env
 docker compose --profile bundled-influx --profile bundled-grafana up -d
-Grafana: http://127.0.0.1:3000 (default admin/admin — change it!)
+```
+Open Grafana at <http://127.0.0.1:3000> (default `admin`/`admin` — change it!).
 
-Option B — Existing InfluxDB, Bundled Grafana
-bash
-Copy code
+### Option B — Existing InfluxDB, Bundled Grafana
+```bash
+cp .env.example .env
+# Set these in .env before starting:
+#   INFLUX_URL, INFLUX_ORG, INFLUX_BUCKET, INFLUX_TOKEN
+USE_EXTERNAL_INFLUX=1 docker compose --profile bundled-grafana up -d
+```
+
+### Option C — Existing InfluxDB + Existing Grafana
+```bash
 cp .env.example .env
 # Set INFLUX_URL, INFLUX_ORG, INFLUX_BUCKET, INFLUX_TOKEN in .env
-USE_EXTERNAL_INFLUX=1 docker compose --profile bundled-grafana up -d
-Option C — Existing InfluxDB + Existing Grafana
-bash
-Copy code
-cp .env.example .env
-# Set INFLUX_* and INFLUX_TOKEN in .env
 USE_EXTERNAL_INFLUX=1 USE_EXTERNAL_GRAFANA=1 docker compose up -d collector
-# In your Grafana, add an InfluxDB v2 (Flux) datasource and import grafana/dashboards/*.json
-Bitcoin Core setup (important)
-The collector pulls metrics from Bitcoin Core via RPC (and optionally ZMQ).
-You do not point Bitcoin Core to a Prometheus or collector endpoint.
+```
+In your external Grafana, add an **InfluxDB v2 (Flux)** datasource, then import `grafana/dashboards/*.json`.
 
-Minimal bitcoin.conf:
+> **Tip:** If your Compose file ignores profiles, `docker compose up -d` starts the bundled stack.
 
-ini
-Copy code
+---
+
+## Bitcoin Core Setup
+The collector pulls metrics from Bitcoin Core via RPC (and optionally ZMQ). You do **not** point Bitcoin Core to this stack.
+
+Minimal `bitcoin.conf`:
+
+```ini
 server=1
 rpcbind=127.0.0.1
-# If remote collector, allow your LAN and/or create a read-only RPC user:
+# If the collector runs on another host, allow your LAN and/or create a read-only RPC user:
 # rpcallowip=192.168.0.0/16
 
-# Optional (recommended):
+# Optional (recommended) for richer metrics:
 zmqpubrawblock=tcp://127.0.0.1:28332
 zmqpubrawtx=tcp://127.0.0.1:28333
-Set matching envs in .env:
+```
 
-pgsql
-Copy code
-BITCOIN_RPC_HOST/PORT, BITCOIN_RPC_COOKIE_PATH (or USER/PASSWORD)
-BITCOIN_ZMQ_RAWBLOCK, BITCOIN_ZMQ_RAWTX  (if you enabled ZMQ)
-What you get after startup
-Collector gathering metrics from Bitcoin Core RPC/ZMQ (+ optional Fulcrum/Electrs)
+Match these in `.env`:
 
-InfluxDB v2 with org/bucket/retention (bundled mode auto-provisions)
+```
+BITCOIN_RPC_HOST / BITCOIN_RPC_PORT
+BITCOIN_RPC_COOKIE_PATH (or BITCOIN_RPC_USER / BITCOIN_RPC_PASSWORD)
+BITCOIN_ZMQ_RAWBLOCK / BITCOIN_ZMQ_RAWTX (if enabling ZMQ)
+```
 
-Grafana with datasource + pre-provisioned dashboards
+---
 
-Optional GeoIP enrichment (country/ASN counts only; no IPs stored)
+## Configuration Cheatsheet
+Minimal edits in `.env` (same-box cookie auth):
 
-Security defaults
-Grafana & Influx bind to 127.0.0.1 by default.
+```
+BITCOIN_RPC_COOKIE_PATH=~/.bitcoin/.cookie
+```
 
-Set EXPOSE_UI=1 to listen on all interfaces; if exposing, use a reverse proxy and change admin credentials.
+If using external InfluxDB:
 
-No telemetry; use read-only RPC where possible.
+```
+INFLUX_URL
+INFLUX_ORG
+INFLUX_BUCKET
+INFLUX_TOKEN
+```
 
-GeoIP enrichment (optional, no binaries in git)
-Get free MaxMind credentials and put them in .env:
+Retention (bundled InfluxDB only):
 
-ini
-Copy code
-GEOIP_ACCOUNT_ID=xxxx
-GEOIP_LICENSE_KEY=yyyy
-GEOIP_UPDATE_FREQUENCY_DAYS=7
-Bring up the stack; the geoipupdate service fetches DBs into the mounted volume.
+```
+INFLUX_RETENTION_DAYS=60  # set to your preference
+```
 
-The collector uses country/ASN counts only (no IPs persisted).
+LAN access to UIs (off by default):
 
-Verify it’s working
-bash
-Copy code
+```
+EXPOSE_UI=1  # then front with a reverse proxy
+```
+
+Feature flags (examples):
+
+```ini
+ENABLE_BLOCK_INTERVALS=1
+ENABLE_PEER_QUALITY=1
+ENABLE_PROCESS_METRICS=1
+ENABLE_DISK_IO=1
+ENABLE_PEER_CHURN=1
+ENABLE_ASN_STATS=1
+MEMPOOL_HIST_SOURCE=none   # or core_rawmempool | mempool_api
+```
+
+Electrum indexer metrics:
+
+```
+ELECTRS_STATS_URL=http://127.0.0.1:4224/stats
+FULCRUM_STATS_URL=http://127.0.0.1:8080/stats
+```
+
+---
+
+## Security Defaults
+- Grafana & Influx bind to `127.0.0.1` by default.
+- Set `EXPOSE_UI=1` to listen on all interfaces; if exposing to LAN/Internet, put behind a reverse proxy and change default credentials.
+- No telemetry; the collector never phones home. Prefer a read-only RPC user when not using cookie auth.
+
+---
+
+## GeoIP Enrichment (Optional)
+This repo does **not** commit `.mmdb` files. A sidecar fetches them at runtime.
+
+1. Get free MaxMind credentials.
+2. In `.env` set:
+   ```ini
+   GEOIP_ACCOUNT_ID=xxxx
+   GEOIP_LICENSE_KEY=yyyy
+   GEOIP_UPDATE_FREQUENCY_DAYS=7
+   ```
+3. Start the stack. The `geoipupdate` service downloads the databases into the mounted volume.
+
+The collector uses country/ASN counts only (no IPs are persisted).
+
+---
+
+## Verify It’s Working
+```bash
 docker compose ps
 docker compose logs -f collector | head
-# Grafana → Dashboards → “01 Overview” should show data within 1–2 minutes.
-Grafana alerting (optional)
-Create rules in Grafana UI:
+```
+Then in Grafana open **Dashboards → “01 Overview”** and confirm data within 1–2 minutes.
 
-Example: “Block lag > 2 for 5 minutes.”
+---
 
-Configure contact points (email, Slack, Telegram, etc.)
+## Grafana Alerting (Optional)
+Use Grafana’s native alerting:
 
-Common pitfalls
-“.env not found” in CI: CI copies .env.example to .env before validation.
+1. Grafana → **Alerting → Alert rules → New alert rule**.
+2. Example: “Block lag > 2 for 5 minutes”.
+3. Configure **Contact points** (email, Slack, Telegram, etc.).
 
-No data: verify RPC connectivity and INFLUX_* settings (if external).
+---
 
-ZMQ empty: confirm zmqpubrawblock/zmqpubrawtx and .env match.
+## Common Pitfalls
+- “`.env` not found” in CI: copy `.env.example` to `.env` before validation.
+- No data in dashboards: verify RPC connectivity and `INFLUX_*` settings (if external).
+- ZMQ panels empty: confirm `zmqpubrawblock` / `zmqpubrawtx` match `.env` values.
+- External Influx perms: token needs `bucket:write` (collector) and read for Grafana.
 
-External Influx perms: token needs bucket:write (collector) and read (Grafana).
+---
 
-Development
-bash
-Copy code
-pip install -e .[dev]
-ruff check .
-mypy --config-file mypy.ini
-pytest -q
-Uninstall / clean up
-bash
-Copy code
+## Uninstall / Clean Up
+```bash
 docker compose down -v
-License
+```
+
+---
+
+## License
 MIT
 
-(Optional) Prometheus note
-Prefer Prometheus? Use a separate community exporter that talks to Core’s RPC and exposes /metrics for Prometheus. This repo ships InfluxDB + Grafana only.
+---
+
+## Prometheus Note
+This stack does **not** expose a Prometheus endpoint or port 9333. All metrics flow Collector → InfluxDB → Grafana.

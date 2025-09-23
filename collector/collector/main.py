@@ -24,6 +24,7 @@ from .metrics import (
     bucket_mempool_histogram,
     create_blockchain_points,
     create_mempool_points,
+    create_peer_geo_points,
     create_peer_points,
     peers_metrics,
 )
@@ -87,7 +88,11 @@ class CollectorService:
         else:
             self.zmq_listener = None
         self.geoip = GeoIPResolver()
-        self.fulcrum = FulcrumClient(config.fulcrum_stats_url)
+        self.fulcrum: Optional[FulcrumClient]
+        if config.fulcrum_stats_url.strip():
+            self.fulcrum = FulcrumClient(config.fulcrum_stats_url)
+        else:
+            self.fulcrum = None
 
     async def start(self) -> None:
         if self.zmq_listener:
@@ -155,6 +160,8 @@ class CollectorService:
             peers = self.rpc.get_peer_info()
             summary = peers_metrics(peers)
             points.extend(create_peer_points(self.config, summary))
+            if self.config.enable_asn_stats:
+                points.extend(create_peer_geo_points(self.config, peers, self.geoip))
 
         if self.config.enable_process_metrics:
             proc = collect_process_metrics()
@@ -181,15 +188,16 @@ class CollectorService:
                     .field("free_percent", disk["free_percent"])
                 )
 
-        try:
-            fulcrum = self.fulcrum.fetch()
-            points.append(
-                Point("fulcrum")
-                .field("tip_height", float(fulcrum.get("tip_height", 0)))
-                .field("clients", float(fulcrum.get("clients", 0)))
-            )
-        except RequestException:
-            LOGGER.debug("Fulcrum stats unavailable")
+        if self.fulcrum:
+            try:
+                fulcrum = self.fulcrum.fetch()
+                points.append(
+                    Point("fulcrum")
+                    .field("tip_height", float(fulcrum.get("tip_height", 0)))
+                    .field("clients", float(fulcrum.get("clients", 0)))
+                )
+            except RequestException:
+                LOGGER.debug("Fulcrum stats unavailable")
 
         self.influx.write_points(points)
 

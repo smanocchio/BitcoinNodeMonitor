@@ -63,7 +63,9 @@ Runs less frequently to capture heavier queries:
 
 * Peer counts (total, inbound, outbound) and ping latency percentiles derived from
   `getpeerinfo`.
-* Optional process metrics from `psutil`, targeting the `bitcoind` process by name.
+* Optional process metrics from `psutil`, targeting the `bitcoind` process by name. The
+  collector requires host PID visibility (for example `pid: host`) or a host deployment to
+  observe the process from inside a container.
 * Optional disk usage sampling for the chainstate directory.
 * Optional Fulcrum/Electrs statistics pulled from the configured stats endpoint.
 

@@ -64,6 +64,8 @@ services:
       - ${ENV_FILE_PATH:-.env}
     volumes:
       - ${BITCOIN_DATADIR:-${HOME}/.bitcoin}:${BITCOIN_DATADIR_CONTAINER:-/root/.bitcoin}:ro
+      - influx-data:/var/lib/influxdb2:ro
+      - geoip-data:/usr/share/GeoIP:ro
     healthcheck:
       test: ["CMD", "python", "-m", "collector", "--healthcheck"]
       interval: 30s

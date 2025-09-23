@@ -20,7 +20,7 @@ SETUP_TOKEN=$(influx setup --skip-verify --bucket "${BUCKET}" --org "${ORG}" \
   --username "${INFLUX_SETUP_USERNAME}" --password "${INFLUX_SETUP_PASSWORD}" \
   --force --retention "$((RETENTION_DAYS*24))h" --token "${INFLUX_TOKEN:-}" | awk '/User/ {print $2}')
 
-echo "Setup token: ${SETUP_TOKEN}"
+echo "InfluxDB initialised successfully"
 
 if [ -z "${INFLUX_TOKEN:-}" ]; then
   echo -n "${SETUP_TOKEN}" > "${TOKEN_FILE}"

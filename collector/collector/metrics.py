@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import dataclass, field
-from typing import Any, Dict, Iterable, List, Mapping, Sequence, TypedDict
+from ipaddress import ip_address
+from typing import Any, Dict, Iterable, List, Mapping, Sequence, Tuple, TypedDict
 
 from .config import CollectorConfig
+from .geoip import GeoIPResolver
 from .influx import Point
 
 
@@ -131,3 +134,67 @@ def create_peer_points(config: CollectorConfig, summary: Mapping[str, float]) ->
         .field("ping_p95_ms", summary["ping_p95_ms"])
     )
     return [point]
+
+
+def _extract_ip(addr: str | None) -> str | None:
+    if not addr:
+        return None
+    address = addr.strip()
+    if not address:
+        return None
+    if address.startswith("["):
+        host = address[1:].split("]", 1)[0]
+    else:
+        host = address.rsplit(":", 1)[0]
+    try:
+        ip_address(host)
+    except ValueError:
+        return None
+    return host
+
+
+def create_peer_geo_points(
+    config: CollectorConfig,
+    peers: Sequence[Mapping[str, Any]],
+    resolver: GeoIPResolver,
+) -> List[Point]:
+    if not resolver.is_configured:
+        return []
+
+    country_counts: Counter[Tuple[str, str]] = Counter()
+    asn_counts: Counter[Tuple[str, str]] = Counter()
+
+    for peer in peers:
+        ip = _extract_ip(peer.get("addr"))
+        if not ip:
+            continue
+        lookup = resolver.lookup(ip)
+        direction = "inbound" if peer.get("inbound") else "outbound"
+        country = lookup.get("country")
+        if country:
+            country_counts[(direction, country)] += 1
+        asn = lookup.get("asn")
+        if asn:
+            asn_counts[(direction, asn)] += 1
+
+    points: List[Point] = []
+
+    for (direction, country), count in country_counts.items():
+        points.append(
+            Point("peer_geo")
+            .tag("network", config.bitcoin_network)
+            .tag("direction", direction)
+            .tag("country", country)
+            .field("peer_count", float(count))
+        )
+
+    for (direction, asn), count in asn_counts.items():
+        points.append(
+            Point("peer_asn")
+            .tag("network", config.bitcoin_network)
+            .tag("direction", direction)
+            .tag("asn", asn)
+            .field("peer_count", float(count))
+        )
+
+    return points

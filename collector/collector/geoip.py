@@ -19,6 +19,12 @@ class GeoIPResolver:
         if asn_path.exists():
             self.asn_reader = Reader(str(asn_path))
 
+    @property
+    def is_configured(self) -> bool:
+        """Return ``True`` when at least one GeoIP database is available."""
+
+        return self.city_reader is not None or self.asn_reader is not None
+
     def close(self) -> None:
         if self.city_reader:
             self.city_reader.close()

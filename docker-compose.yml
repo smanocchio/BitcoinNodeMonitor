@@ -22,6 +22,8 @@ services:
     container_name: btc_grafana
     restart: unless-stopped
     profiles: ["bundled-grafana"]
+    env_file:
+      - ${ENV_FILE_PATH:-.env.example}
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
@@ -29,10 +31,12 @@ services:
       GF_SERVER_HTTP_PORT: 3000
       GF_SERVER_DOMAIN: localhost
       GF_USERS_ALLOW_SIGN_UP: "false"
+      INFLUX_TOKEN: ${INFLUX_TOKEN:-__file{/var/lib/influxdb2/.influxdbv2/token}}
     volumes:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - influx-data:/var/lib/influxdb2:ro
     ports:
       - "${GRAFANA_BIND_IP:-127.0.0.1}:3000:3000"
     healthcheck:

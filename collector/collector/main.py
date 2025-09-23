@@ -87,7 +87,9 @@ class CollectorService:
             )
         else:
             self.zmq_listener = None
-        self.geoip = GeoIPResolver() if config.enable_asn_stats else None
+        self.geoip: Optional[GeoIPResolver] = None
+        if config.enable_asn_stats:
+            self.geoip = GeoIPResolver()
         self.fulcrum = FulcrumClient(config.fulcrum_stats_url)
 
     async def start(self) -> None:

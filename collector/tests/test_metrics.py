@@ -1,6 +1,7 @@
 from collector.metrics import (
     ReorgTracker,
     bucket_mempool_histogram,
+    create_peer_geo_points,
     peers_metrics,
     percentile,
 )
@@ -35,3 +36,35 @@ def test_peer_metrics():
     assert summary["inbound"] == 1
     assert summary["outbound"] == 2
     assert summary["ping_p95_ms"] >= summary["ping_avg_ms"]
+
+
+def test_create_peer_geo_points():
+    peers = [
+        {"addr": "1.2.3.4:8333"},
+        {"addr": "5.6.7.8:8333"},
+        {"addr": None},
+    ]
+
+    class DummyResolver:
+        def __init__(self) -> None:
+            self.queries = []
+
+        def lookup(self, ip: str):
+            self.queries.append(ip)
+            if ip == "1.2.3.4":
+                return {"country": "US", "asn": "AS1 Example"}
+            return {"country": None, "asn": None}
+
+    resolver = DummyResolver()
+
+    class DummyConfig:
+        bitcoin_network = "mainnet"
+
+    points = create_peer_geo_points(DummyConfig(), peers, resolver)
+
+    assert resolver.queries == ["1.2.3.4", "5.6.7.8"]
+    countries = {p.tags.get("country") for p in points if p.measurement == "peers_geo"}
+    assert countries == {"US"}
+    asn_points = [p for p in points if p.measurement == "peers_asn"]
+    assert len(asn_points) == 1
+    assert asn_points[0].tags["asn"] == "AS1 Example"

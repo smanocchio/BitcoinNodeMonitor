@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import dataclass, field
-from typing import Any, Dict, Iterable, List, Mapping, Sequence, TypedDict
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Protocol, Sequence, TypedDict
 
 from .config import CollectorConfig
 from .influx import Point
@@ -72,6 +73,69 @@ def peers_metrics(peers: Sequence[Mapping[str, Any]]) -> Dict[str, float]:
         "ping_avg_ms": sum(ping_values) / len(ping_values) if ping_values else 0.0,
         "ping_p95_ms": percentile(ping_values, 0.95) if ping_values else 0.0,
     }
+
+
+class GeoIPResolverProtocol(Protocol):
+    def lookup(self, ip: str) -> Mapping[str, Optional[str]]:
+        """Return GeoIP data for the supplied IP address."""
+
+
+def _extract_peer_host(address: Optional[str]) -> Optional[str]:
+    if not address:
+        return None
+    if address.startswith("["):
+        end = address.find("]")
+        if end > 0:
+            return address[1:end]
+        return None
+    if ":" in address:
+        host, _, port = address.rpartition(":")
+        if host and port.isdigit():
+            return host
+    return address
+
+
+def create_peer_geo_points(
+    config: CollectorConfig,
+    peers: Sequence[Mapping[str, Any]],
+    resolver: GeoIPResolverProtocol,
+) -> List[Point]:
+    country_counts: Counter[str] = Counter()
+    asn_counts: Counter[str] = Counter()
+
+    for peer in peers:
+        host = _extract_peer_host(peer.get("addr"))
+        if not host:
+            continue
+        try:
+            lookup = resolver.lookup(host)
+        except Exception:  # noqa: BLE001
+            continue
+        if lookup is None:
+            continue
+        country = lookup.get("country")
+        if country:
+            country_counts[str(country)] += 1
+        asn = lookup.get("asn")
+        if asn:
+            asn_counts[str(asn)] += 1
+
+    points: List[Point] = []
+    for country, count in country_counts.items():
+        points.append(
+            Point("peers_geo")
+            .tag("network", config.bitcoin_network)
+            .tag("country", country)
+            .field("count", float(count))
+        )
+    for asn, count in asn_counts.items():
+        points.append(
+            Point("peers_asn")
+            .tag("network", config.bitcoin_network)
+            .tag("asn", asn)
+            .field("count", float(count))
+        )
+    return points
 
 
 def create_blockchain_points(

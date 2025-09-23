@@ -1,17 +1,21 @@
+from typing import cast
+
 import pytest
 import requests
+from requests import Response
 
 from collector.influx import InfluxWriteError, InfluxWriter, Point
 
 
-class DummyResponse:
+class DummyResponse(Response):
     def __init__(self, status_code: int, text: str = "") -> None:
+        super().__init__()
         self.status_code = status_code
-        self.text = text
+        self._content = text.encode()
 
     def raise_for_status(self) -> None:
         if self.status_code >= 400:
-            raise requests.HTTPError("boom", response=self)
+            raise requests.HTTPError("boom", response=cast(Response, self))
 
 
 def test_write_points_raises_on_http_error(monkeypatch):

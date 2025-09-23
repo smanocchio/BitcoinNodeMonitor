@@ -150,10 +150,11 @@ class CollectorService:
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
     def collect_slow(self) -> None:
         LOGGER.debug("Collecting slow metrics")
-        peers = self.rpc.get_peer_info()
-        summary = peers_metrics(peers)
         points: List[Point] = []
-        points.extend(create_peer_points(self.config, summary))
+        if self.config.enable_peer_quality:
+            peers = self.rpc.get_peer_info()
+            summary = peers_metrics(peers)
+            points.extend(create_peer_points(self.config, summary))
 
         if self.config.enable_process_metrics:
             proc = collect_process_metrics()

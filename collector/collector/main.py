@@ -36,9 +36,13 @@ LOGGER = logging.getLogger(__name__)
 def _build_rpc(config: CollectorConfig) -> BitcoinRPC:
     cookie = None
     if not config.bitcoin_rpc_user and not config.bitcoin_rpc_password:
-        cookie_path = find_cookie(config.bitcoin_datadir)
-        if cookie_path:
-            cookie = format_cookie_auth(cookie_path)
+        # Prefer an explicit cookie path override before inspecting the datadir.
+        if config.cookie_path:
+            cookie = format_cookie_auth(config.cookie_path)
+        else:
+            cookie_path = find_cookie(config.bitcoin_datadir)
+            if cookie_path:
+                cookie = format_cookie_auth(cookie_path)
     url = f"http://{config.bitcoin_rpc_host}:{config.bitcoin_rpc_port}"
     return BitcoinRPC(
         url=url,

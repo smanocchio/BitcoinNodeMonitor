@@ -19,7 +19,7 @@ services. This document explains every option and how they interact.
 | `BITCOIN_RPC_HOST` | `127.0.0.1` | Hostname/IP for the JSON-RPC endpoint. |
 | `BITCOIN_RPC_PORT` | `8332` | RPC port. Adjust for testnet/regtest. |
 | `BITCOIN_RPC_USER` / `BITCOIN_RPC_PASSWORD` | _empty_ | Explicit RPC credentials. Leave blank when using cookie auth. |
-| `BITCOIN_RPC_COOKIE_PATH` | `~/.bitcoin/.cookie` | Fallback cookie location. The collector also searches inside the mounted data directory. |
+| `BITCOIN_RPC_COOKIE_PATH` | `~/.bitcoin/.cookie` | Preferred cookie location when set. If the file is missing, the collector searches the mounted data directory. |
 | `BITCOIN_NETWORK` | `mainnet` | Tag applied to every metric. Supports custom values such as `testnet` or `signet`. |
 | `BITCOIN_DATADIR` | `~/.bitcoin` | Mounted into the collector container to access the cookie file and configuration. |
 | `BITCOIN_CHAINSTATE_DIR` | `~/.bitcoin/chainstate` | Used when disk utilisation metrics are enabled. |

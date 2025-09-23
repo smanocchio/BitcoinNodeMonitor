@@ -69,7 +69,9 @@ def test_point_to_line_escapes_special_characters():
         .to_line()
     )
 
-    assert (
-        line
-        == "peer\\ stats,asn=AS64500\\ Example,path=/var/lib/bitcoin\\,mainnet latency\\ ms=1.23,peers=8"
+    expected = (
+        "peer\\ stats,asn=AS64500\\ Example,path=/var/lib/bitcoin\\,mainnet "
+        "latency\\ ms=1.23,peers=8"
     )
+
+    assert line == expected

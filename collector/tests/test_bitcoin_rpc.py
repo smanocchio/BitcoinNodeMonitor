@@ -18,7 +18,12 @@ def test_call_raises_rpc_error(monkeypatch):
     rpc = BitcoinRPC("http://localhost:8332")
 
     def fake_post(*args, **kwargs):
-        return DummyResponse(200, {"jsonrpc": "2.0", "id": "btc-monitor", "error": {"code": -8, "message": "Unknown block"}})
+        payload = {
+            "jsonrpc": "2.0",
+            "id": "btc-monitor",
+            "error": {"code": -8, "message": "Unknown block"},
+        }
+        return DummyResponse(200, payload)
 
     monkeypatch.setattr("collector.bitcoin_rpc.requests.post", fake_post)
 

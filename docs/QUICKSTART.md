@@ -14,8 +14,9 @@ Follow the steps that match your operating system:
 * **Windows 10/11:** install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
   with the WSL2 backend enabled. Run the commands below from an elevated PowerShell or
   Windows Terminal session. Docker Desktop ships with the Compose plugin already enabled.
-* A synchronised Bitcoin Core node reachable from the host. Enable JSON-RPC and ZMQ with
-  the following options in `bitcoin.conf` if they are not already set:
+* A synchronised Bitcoin Core node reachable from the host. Ensure JSON-RPC is enabled and,
+  if you plan to collect ZMQ metrics (`ENABLE_ZMQ=1`), configure the following publishers in
+  `bitcoin.conf`:
 
   ```ini
   server=1
@@ -53,13 +54,15 @@ Follow the steps that match your operating system:
    | `BITCOIN_RPC_HOST` / `BITCOIN_RPC_PORT` | Location of your Bitcoin Core RPC endpoint. |
    | `BITCOIN_RPC_USER` / `BITCOIN_RPC_PASSWORD` | RPC credentials, or leave blank to use the cookie file. |
    | `BITCOIN_DATADIR` | Path mounted into the collector container for cookie access. |
-   | `BITCOIN_ZMQ_RAWBLOCK` / `BITCOIN_ZMQ_RAWTX` | Must match the ZMQ configuration from `bitcoin.conf`. |
+   | `ENABLE_ZMQ` | Set to `1` only when you want ZMQ freshness metrics. Leave it commented otherwise. |
+   | `BITCOIN_ZMQ_RAWBLOCK` / `BITCOIN_ZMQ_RAWTX` | When ZMQ metrics are enabled, ensure these match `bitcoin.conf`. Leave them commented to skip ZMQ panels. |
    | `INFLUX_SETUP_USERNAME` / `INFLUX_SETUP_PASSWORD` | Credentials used to bootstrap the bundled InfluxDB instance. |
    | `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` | Initial Grafana login. |
 
 3. If the monitoring host is different from the Bitcoin node, adjust `BITCOIN_RPC_HOST`,
    `BITCOIN_ZMQ_*`, and mount the cookie file via a bind mount or provide explicit RPC
-   credentials.
+   credentials. You can omit the ZMQ entries entirely when the dashboards do not require
+   those metrics.
 
 ## 3. Start the Stack
 

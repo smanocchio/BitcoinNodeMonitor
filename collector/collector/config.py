@@ -48,6 +48,7 @@ class CollectorConfig(BaseSettings):
     enable_disk_io: bool = True
     enable_peer_churn: bool = True
     enable_asn_stats: bool = True
+    enable_zmq: bool = False
 
     mempool_hist_source: Literal["none", "core_rawmempool", "mempool_api"] = "none"
     mempool_api_base: str = "http://127.0.0.1:3006"

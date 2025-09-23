@@ -1,12 +1,12 @@
 from collector.config import CollectorConfig
 from collector.metrics import (
     ReorgTracker,
+    _extract_ip,
     bucket_mempool_histogram,
     create_peer_geo_points,
     peers_metrics,
     percentile,
 )
-from collector.metrics import _extract_ip
 
 
 def test_reorg_tracker():

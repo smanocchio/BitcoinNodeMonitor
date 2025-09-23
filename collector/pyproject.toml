@@ -14,7 +14,6 @@ dependencies = [
   "requests>=2.31",
   "tenacity>=8.2",
   "psutil>=5.9",
-  "influxdb-client>=1.38",
   "pyzmq>=25.1",
   "geoip2>=4.7"
 ]

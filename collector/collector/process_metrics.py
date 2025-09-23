@@ -11,7 +11,7 @@ import psutil
 LOGGER = logging.getLogger(__name__)
 
 
-def collect_process_metrics(process_name: str = "bitcoind") -> dict[str, float]:
+def collect_process_metrics(process_name: str = "bitcoind") -> Optional[dict[str, float]]:
     """Return CPU%, RSS MB, and open file descriptors for a named process."""
 
     for proc in psutil.process_iter(["name", "cpu_percent", "memory_info", "num_fds"]):
@@ -22,7 +22,8 @@ def collect_process_metrics(process_name: str = "bitcoind") -> dict[str, float]:
                 "memory_rss_mb": float(getattr(memory, "rss", 0) / (1024 * 1024) if memory else 0),
                 "open_files": float(proc.info.get("num_fds", 0)),
             }
-    return {"cpu_percent": 0.0, "memory_rss_mb": 0.0, "open_files": 0.0}
+    LOGGER.debug("Process not found for metrics collection", extra={"process": process_name})
+    return None
 
 
 def collect_disk_usage(path: str) -> Optional[dict[str, float]]:

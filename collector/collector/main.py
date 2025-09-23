@@ -165,13 +165,16 @@ class CollectorService:
 
         if self.config.enable_process_metrics:
             proc = collect_process_metrics()
-            points.append(
-                Point("process")
-                .tag("name", "bitcoind")
-                .field("cpu_percent", proc["cpu_percent"])
-                .field("memory_rss_mb", proc["memory_rss_mb"])
-                .field("open_files", proc["open_files"])
-            )
+            if proc is None:
+                LOGGER.debug("Skipping process metrics; process not found")
+            else:
+                points.append(
+                    Point("process")
+                    .tag("name", "bitcoind")
+                    .field("cpu_percent", proc["cpu_percent"])
+                    .field("memory_rss_mb", proc["memory_rss_mb"])
+                    .field("open_files", proc["open_files"])
+                )
 
         if self.config.enable_disk_io:
             disk = collect_disk_usage(self.config.bitcoin_chainstate_dir)

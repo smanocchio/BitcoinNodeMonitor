@@ -57,3 +57,21 @@ def test_write_points_noop_without_fields(monkeypatch):
     writer.write_points([Point("measurement")])
 
     assert called is False
+
+
+def test_point_to_line_escapes_special_characters():
+    line = (
+        Point("peer stats")
+        .tag("asn", "AS64500 Example")
+        .tag("path", "/var/lib/bitcoin,mainnet")
+        .field("latency ms", 1.23)
+        .field("peers", 8)
+        .to_line()
+    )
+
+    expected = (
+        "peer\\ stats,asn=AS64500\\ Example,path=/var/lib/bitcoin\\,mainnet "
+        "latency\\ ms=1.23,peers=8"
+    )
+
+    assert line == expected

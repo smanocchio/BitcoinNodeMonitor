@@ -4,8 +4,16 @@ services:
     container_name: btc_influxdb
     restart: unless-stopped
     profiles: ["bundled-influx"]
+    env_file:
+      - ${ENV_FILE_PATH:-.env}
     environment:
       INFLUXD_HTTP_BIND_ADDRESS: ${INFLUX_BIND_IP:-127.0.0.1}:8086
+      INFLUX_ORG: ${INFLUX_ORG:-bitcoin}
+      INFLUX_BUCKET: ${INFLUX_BUCKET:-btc_metrics}
+      INFLUX_RETENTION_DAYS: ${INFLUX_RETENTION_DAYS:-60}
+      INFLUX_SETUP_USERNAME: ${INFLUX_SETUP_USERNAME:?err}
+      INFLUX_SETUP_PASSWORD: ${INFLUX_SETUP_PASSWORD:?err}
+      INFLUX_TOKEN: ${INFLUX_TOKEN:-}
     volumes:
       - influx-data:/var/lib/influxdb2
       - ./influx/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
@@ -23,7 +31,7 @@ services:
     restart: unless-stopped
     profiles: ["bundled-grafana"]
     env_file:
-      - ${ENV_FILE_PATH:-.env.example}
+      - ${ENV_FILE_PATH:-.env}
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
@@ -53,7 +61,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     env_file:
-      - ${ENV_FILE_PATH:-.env.example}
+      - ${ENV_FILE_PATH:-.env}
     volumes:
       - ${BITCOIN_DATADIR:-~/.bitcoin}:${BITCOIN_DATADIR:-/root/.bitcoin}:ro
     healthcheck:
@@ -67,7 +75,7 @@ services:
     container_name: btc_geoipupdate
     restart: unless-stopped
     env_file:
-      - ${ENV_FILE_PATH:-.env.example}
+      - ${ENV_FILE_PATH:-.env}
     environment:
       GEOIPUPDATE_ACCOUNT_ID: ${GEOIP_ACCOUNT_ID:-}
       GEOIPUPDATE_LICENSE_KEY: ${GEOIP_LICENSE_KEY:-}

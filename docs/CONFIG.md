@@ -68,8 +68,8 @@ changes to `INFLUX_*` variables should be reflected here as well.
 
 | Variable | Default | Effect |
 |----------|---------|--------|
-| `SCRAPE_INTERVAL_FAST` | `5` | Seconds between fast loop executions. |
-| `SCRAPE_INTERVAL_SLOW` | `30` | Seconds between slow loop executions. |
+| `SCRAPE_INTERVAL_FAST` | `5` | Seconds between fast loop executions. Controls how often the collector refreshes blockchain height, mempool metrics, and ZMQ freshness. |
+| `SCRAPE_INTERVAL_SLOW` | `30` | Seconds between slow loop executions. Governs peer summaries, process metrics, disk sampling, and other heavier calls. |
 | `ENABLE_BLOCK_INTERVALS` | `1` | Placeholder flag for enabling additional block cadence analytics. |
 | `ENABLE_SOFTFORK_SIGNAL` | `1` | Placeholder flag for signalling dashboards. |
 | `ENABLE_PEER_QUALITY` | `1` | Enables peer latency aggregations. |

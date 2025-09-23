@@ -32,7 +32,8 @@ streams, and pushes metrics to InfluxDB.
 1. **Bitcoin Core** exposes JSON-RPC, ZMQ block/transaction streams, and optionally Fulcrum
    statistics.
 2. **Collector** authenticates using RPC credentials or the cookie file, polls data at
-   configurable fast/slow intervals, enriches with GeoIP lookups, and writes metrics to
+   configurable fast/slow intervals (fast for blockchain and mempool changes, slow for
+   peer/process/disk sampling), enriches with GeoIP lookups, and writes metrics to
    InfluxDB.
 3. **InfluxDB** stores the time-series data inside the configured bucket and retention
    policy.

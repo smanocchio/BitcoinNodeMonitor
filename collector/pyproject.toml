@@ -30,3 +30,4 @@ select = ["E", "F", "B", "I"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]

@@ -46,6 +46,8 @@ services:
       context: ./collector
     container_name: btc_collector
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     env_file:
       - ${ENV_FILE_PATH:-.env.example}
     volumes:

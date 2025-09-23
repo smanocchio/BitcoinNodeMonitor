@@ -14,7 +14,9 @@ Follow the steps that match your operating system:
 * **Windows 10/11:** install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
   with the WSL2 backend enabled. Run the commands below from an elevated PowerShell or
   Windows Terminal session. Docker Desktop ships with the Compose plugin already enabled.
-* A synchronised Bitcoin Core node reachable from the host. Ensure JSON-RPC is enabled and,
+* A synchronised Bitcoin Core node reachable from the collector container. Linux deployments
+  expose the Docker host as `host.docker.internal`, which is the default RPC host for this
+  stack. Ensure JSON-RPC is enabled and,
   if you plan to collect ZMQ metrics (`ENABLE_ZMQ=1`), configure the following publishers in
   `bitcoin.conf`:
 
@@ -51,7 +53,7 @@ Follow the steps that match your operating system:
 
    | Variable | Description |
    |----------|-------------|
-   | `BITCOIN_RPC_HOST` / `BITCOIN_RPC_PORT` | Location of your Bitcoin Core RPC endpoint. |
+   | `BITCOIN_RPC_HOST` / `BITCOIN_RPC_PORT` | Location of your Bitcoin Core RPC endpoint. Defaults to `host.docker.internal` so the collector can reach a node running on the Docker host. |
    | `BITCOIN_RPC_USER` / `BITCOIN_RPC_PASSWORD` | RPC credentials, or leave blank to use the cookie file. |
    | `BITCOIN_DATADIR` | Path mounted into the collector container for cookie access. |
   | `ENABLE_ZMQ` | Set to `1` only when you want ZMQ freshness metrics. Leave it at `0` otherwise. |
@@ -59,10 +61,12 @@ Follow the steps that match your operating system:
    | `INFLUX_SETUP_USERNAME` / `INFLUX_SETUP_PASSWORD` | Credentials used to bootstrap the bundled InfluxDB instance. |
    | `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` | Initial Grafana login. |
 
-3. If the monitoring host is different from the Bitcoin node, adjust `BITCOIN_RPC_HOST`,
-   `BITCOIN_ZMQ_*`, and mount the cookie file via a bind mount or provide explicit RPC
-   credentials. You can omit the ZMQ entries entirely when the dashboards do not require
-   those metrics.
+3. Remember that the collector runs inside a container: use addresses that are reachable from
+   that environment. When your node runs on the same machine as Docker, the bundled
+   configuration already points to `host.docker.internal`. If the node lives elsewhere,
+   adjust `BITCOIN_RPC_HOST`, `BITCOIN_ZMQ_*`, and mount the cookie file via a bind mount or
+   provide explicit RPC credentials. You can omit the ZMQ entries entirely when the
+   dashboards do not require those metrics.
 
 ## 3. Start the Stack
 

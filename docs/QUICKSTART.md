@@ -29,7 +29,10 @@ Follow the steps that match your operating system:
   ```
 
 * Optional: a Fulcrum/Electrs server exposing the `/stats` endpoint and a MaxMind account
-  if you want GeoIP enrichment.
+  if you want GeoIP enrichment. When you intend to collect `bitcoind` process metrics, plan
+  to run the collector with host PID visibility (for example by adding `pid: host` in a
+  Docker Compose override file) or run it directly on the host so the process is visible to
+  `psutil`.
 
 ## 2. Configure Environment
 
@@ -56,10 +59,11 @@ Follow the steps that match your operating system:
    | `BITCOIN_RPC_HOST` / `BITCOIN_RPC_PORT` | Location of your Bitcoin Core RPC endpoint. Defaults to `host.docker.internal` so the collector can reach a node running on the Docker host. |
    | `BITCOIN_RPC_USER` / `BITCOIN_RPC_PASSWORD` | RPC credentials, or leave blank to use the cookie file. |
    | `BITCOIN_DATADIR` | Absolute path mounted into the collector container for cookie access. Docker Compose does not expand `~`, so set this explicitly (for example `/home/bitcoin/.bitcoin`). |
-  | `ENABLE_ZMQ` | Set to `1` only when you want ZMQ freshness metrics. Leave it at `0` otherwise. |
+   | `ENABLE_ZMQ` | Set to `1` only when you want ZMQ freshness metrics. Leave it at `0` otherwise. |
    | `BITCOIN_ZMQ_RAWBLOCK` / `BITCOIN_ZMQ_RAWTX` | When ZMQ metrics are enabled, ensure these match `bitcoin.conf`. Leave them commented to skip ZMQ panels. |
    | `INFLUX_SETUP_USERNAME` / `INFLUX_SETUP_PASSWORD` | Credentials used to bootstrap the bundled InfluxDB instance. |
    | `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` | Initial Grafana login. Replace the placeholder password in `.env` with a unique value before exposing dashboards. |
+   | `FULCRUM_STATS_URL` | Leave blank unless you have a Fulcrum/Electrs instance exposing `/stats`. |
 
 3. Remember that the collector runs inside a container: use addresses that are reachable from
    that environment. When your node runs on the same machine as Docker, the bundled
@@ -85,8 +89,10 @@ Follow the steps that match your operating system:
      ```
 
    The profiles ensure that the bundled InfluxDB and Grafana instances start alongside the
-   collector. If you plan to connect to external services you can omit the profiles and
-   customise the environment instead.
+   collector. The compose file also mounts the InfluxDB token file and GeoIP databases into
+   the collector container; keep those volumes in place unless you manage credentials via an
+   alternative mechanism. If you plan to connect to external services you can omit the
+   profiles and customise the environment instead.
 
 2. Check service health:
 

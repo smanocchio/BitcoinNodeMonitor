@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 
 from collector.config import CollectorConfig
-from collector.main import CollectorService, _build_rpc
+from collector.main import CollectorService, _build_rpc, _read_token_file
 
 
 class DummyRPC:
@@ -52,8 +52,8 @@ def _build_service(
     bitcoin_chainstate_dir: str = "~/.bitcoin/chainstate",
 ) -> tuple[CollectorService, DummyRPC, DummyInflux]:
     peers = [
-        {"inbound": True, "pingtime": 0.5},
-        {"inbound": False, "pingtime": 0.25},
+        {"inbound": True, "pingtime": 0.5, "addr": "203.0.113.5:8333"},
+        {"inbound": False, "pingtime": 0.25, "addr": "198.51.100.20:8333"},
     ]
     fake_rpc = DummyRPC(peers)
     fake_influx = DummyInflux()
@@ -78,6 +78,26 @@ def test_collect_slow_writes_peers_when_enabled(monkeypatch):
     assert rpc.calls == 1
     assert influx.writes
     assert any(point.measurement == "peers" for point in influx.writes[0])
+
+
+def test_collect_slow_enriches_geoip_when_enabled(monkeypatch):
+    service, rpc, influx = _build_service(monkeypatch, enable_peer_quality=True)
+
+    class DummyGeoIP:
+        @property
+        def is_configured(self) -> bool:
+            return True
+
+        def lookup(self, ip):
+            return {"country": "US", "asn": "AS64500 Example"}
+
+    service.geoip = DummyGeoIP()  # type: ignore[assignment]
+    service.config.enable_asn_stats = True
+
+    service.collect_slow()
+
+    assert any(point.measurement == "peer_geo" for point in influx.writes[0])
+    assert any(point.measurement == "peer_asn" for point in influx.writes[0])
 
 
 def test_collect_slow_skips_peers_when_disabled(monkeypatch):
@@ -108,3 +128,35 @@ def test_collect_slow_skips_filesystem_when_path_missing(monkeypatch):
     assert rpc.calls == 0
     assert influx.writes
     assert all(point.measurement != "filesystem" for point in influx.writes[0])
+
+
+def test_collect_slow_skips_fulcrum_when_url_blank(monkeypatch):
+    service, rpc, influx = _build_service(monkeypatch, enable_peer_quality=False)
+    service.fulcrum = None  # type: ignore[assignment]
+
+    service.collect_slow()
+
+    assert rpc.calls == 0
+    assert influx.writes
+
+
+def test_read_token_file_returns_empty_when_missing(monkeypatch):
+    monkeypatch.setattr("builtins.open", open, raising=False)
+    result = _read_token_file()
+    assert result == ""
+
+
+def test_read_token_file_uses_bootstrap_path(monkeypatch, tmp_path):
+    token = tmp_path / "token"
+    token.write_text("abc123", encoding="utf-8")
+
+    original_open = open
+
+    def fake_open(path, mode="r", encoding=None):
+        if path == "/var/lib/influxdb2/.influxdbv2/token":
+            return original_open(token, mode, encoding=encoding)
+        return original_open(path, mode, encoding=encoding)
+
+    monkeypatch.setattr("builtins.open", fake_open)
+
+    assert _read_token_file() == "abc123"

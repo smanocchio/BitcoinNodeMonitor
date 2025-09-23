@@ -27,7 +27,7 @@ services. This document explains every option and how they interact.
 | `ENABLE_ZMQ` | `0` | Set to `1` to collect ZMQ freshness metrics. Leave at `0` when you do not need the Grafana ZMQ panels. |
 | `BITCOIN_ZMQ_RAWBLOCK` | `tcp://127.0.0.1:28332` | Endpoint for raw block notifications. Must match `bitcoin.conf` when ZMQ metrics are enabled. |
 | `BITCOIN_ZMQ_RAWTX` | `tcp://127.0.0.1:28333` | Endpoint for raw transaction notifications. Must match `bitcoin.conf` when ZMQ metrics are enabled. |
-| `FULCRUM_STATS_URL` | `http://127.0.0.1:8080/stats` | Optional Fulcrum/Electrs stats endpoint. Leave empty to disable. |
+| `FULCRUM_STATS_URL` | _empty_ | Optional Fulcrum/Electrs stats endpoint. Provide a full URL to enable scraping. |
 
 The collector automatically reads the cookie file when both username and password are empty.
 If the cookie cannot be found, make sure the data directory is mounted read-only into the
@@ -53,7 +53,8 @@ corresponding measurements.
 | `USE_EXTERNAL_INFLUX` | `0` | Set to `1` to skip starting the bundled InfluxDB service. |
 
 The bootstrap script writes the active token to `/var/lib/influxdb2/.influxdbv2/token`. The
-collector reads the file when `INFLUX_TOKEN` is empty.
+collector reads the file when `INFLUX_TOKEN` is empty, so the `influx-data` volume must stay
+mounted (read-only) on the collector service as shown in `docker-compose.yml`.
 
 ## Grafana Options
 
@@ -76,7 +77,7 @@ changes to `INFLUX_*` variables should be reflected here as well.
 | `ENABLE_BLOCK_INTERVALS` | `1` | Placeholder flag for enabling additional block cadence analytics. |
 | `ENABLE_SOFTFORK_SIGNAL` | `1` | Placeholder flag for signalling dashboards. |
 | `ENABLE_PEER_QUALITY` | `1` | Enables peer latency aggregations. |
-| `ENABLE_PROCESS_METRICS` | `1` | Collects CPU, memory, and file descriptor counts for the `bitcoind` process using `psutil`. |
+| `ENABLE_PROCESS_METRICS` | `1` | Collects CPU, memory, and file descriptor counts for the `bitcoind` process using `psutil`. Requires running the collector with host PID visibility (for example `pid: host`) or deploying it directly on the host. |
 | `ENABLE_PEER_CHURN` | `1` | Reserved for future peer churn calculations. |
 
 Flags marked as placeholders do not currently toggle additional logic but are included for
@@ -104,7 +105,8 @@ When histogram collection is disabled (`none`), the collector skips external cal
 
 If credentials are omitted the update container will fail gracefully; peer metrics will still
 collect counts but without country/ASN enrichment. Toggle `ENABLE_ASN_STATS` off when you
-prefer to skip ASN lookups altogether.
+prefer to skip ASN lookups altogether. Keep the shared `geoip-data` volume mounted in the
+collector container so the MaxMind databases are readable when enrichment is enabled.
 
 ## Customising for Testnet or Signet
 

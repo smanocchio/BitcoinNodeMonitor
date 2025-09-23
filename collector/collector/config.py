@@ -31,7 +31,7 @@ class CollectorConfig(BaseSettings):
     bitcoin_zmq_rawblock: str = "tcp://127.0.0.1:28332"
     bitcoin_zmq_rawtx: str = "tcp://127.0.0.1:28333"
 
-    fulcrum_stats_url: str = "http://127.0.0.1:8080/stats"
+    fulcrum_stats_url: str = ""
 
     influx_url: str = "http://influxdb:8086"
     influx_org: str = "bitcoin"

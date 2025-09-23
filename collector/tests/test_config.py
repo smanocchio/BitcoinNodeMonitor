@@ -8,6 +8,7 @@ def test_defaults(tmp_path, monkeypatch):
     config = CollectorConfig()
     assert config.bitcoin_rpc_host == "127.0.0.1"
     assert config.cookie_path is not None
+    assert config.enable_zmq is False
 
 
 def test_invalid_hist_source(monkeypatch):
@@ -18,3 +19,13 @@ def test_invalid_hist_source(monkeypatch):
         assert "MEMPOOL_HIST_SOURCE" in str(exc)
     else:  # pragma: no cover
         raise AssertionError("Config validation should have failed")
+
+
+def test_enable_zmq_toggle(monkeypatch):
+    monkeypatch.delenv("ENABLE_ZMQ", raising=False)
+    config = CollectorConfig()
+    assert config.enable_zmq is False
+
+    monkeypatch.setenv("ENABLE_ZMQ", "1")
+    config = CollectorConfig()
+    assert config.enable_zmq is True

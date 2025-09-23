@@ -23,13 +23,15 @@ services. This document explains every option and how they interact.
 | `BITCOIN_NETWORK` | `mainnet` | Tag applied to every metric. Supports custom values such as `testnet` or `signet`. |
 | `BITCOIN_DATADIR` | `~/.bitcoin` | Mounted into the collector container to access the cookie file and configuration. |
 | `BITCOIN_CHAINSTATE_DIR` | `~/.bitcoin/chainstate` | Used when disk utilisation metrics are enabled. |
-| `BITCOIN_ZMQ_RAWBLOCK` | `tcp://127.0.0.1:28332` | Endpoint for raw block notifications. |
-| `BITCOIN_ZMQ_RAWTX` | `tcp://127.0.0.1:28333` | Endpoint for raw transaction notifications. |
+| `ENABLE_ZMQ` | `0` | Set to `1` to collect ZMQ freshness metrics. Leave at `0` when you do not need the Grafana ZMQ panels. |
+| `BITCOIN_ZMQ_RAWBLOCK` | `tcp://127.0.0.1:28332` | Endpoint for raw block notifications. Must match `bitcoin.conf` when ZMQ metrics are enabled. |
+| `BITCOIN_ZMQ_RAWTX` | `tcp://127.0.0.1:28333` | Endpoint for raw transaction notifications. Must match `bitcoin.conf` when ZMQ metrics are enabled. |
 | `FULCRUM_STATS_URL` | `http://127.0.0.1:8080/stats` | Optional Fulcrum/Electrs stats endpoint. Leave empty to disable. |
 
 The collector automatically reads the cookie file when both username and password are empty.
 If the cookie cannot be found, make sure the data directory is mounted read-only into the
-container (see `docker-compose.yml`).
+container (see `docker-compose.yml`). When ZMQ metrics remain disabled the collector skips
+starting the listener and simply omits the corresponding measurements.
 
 ## InfluxDB Options
 

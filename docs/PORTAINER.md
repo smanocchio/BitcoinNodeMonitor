@@ -12,7 +12,7 @@ Portainer can manage the Docker Compose stack that powers Bitcoin Node Monitorin
 
 Portainer lets you provide an `.env` file when you create a stack. Use the same values that are required in the [Quick Start guide](./QUICKSTART.md):
 
-1. Copy `.env.example` to `.env` and adjust RPC credentials, the data directory mount, ZMQ endpoints, and Grafana/InfluxDB bootstrap credentials.
+1. Copy `.env.example` to `.env` and adjust RPC credentials, the data directory mount, and Grafana/InfluxDB bootstrap credentials. Opt in to ZMQ metrics by setting `ENABLE_ZMQ=1` and ensuring the endpoints match `bitcoin.conf`; otherwise leave those entries commented.
 2. Ensure any host paths referenced in the `.env` file are valid on the Docker host that Portainer manages. These paths are mounted into the containers just like when running `docker compose` locally.
 
 If you cannot supply an `.env` file (for example when pasting Compose content into the web editor) you can replace the `${VARIABLE}` expressions in the compose file with their literal values. Be mindful not to commit secrets back into version control if you download an edited file.

@@ -42,9 +42,10 @@ investigate.
 
 **Actions**
 
-1. Confirm the ZMQ endpoints in `.env` match `bitcoin.conf`.
-2. Ensure the host firewall allows the collector to connect to the ZMQ ports.
-3. Restart Bitcoin Core to re-establish ZMQ publishers if necessary.
+1. Confirm that `ENABLE_ZMQ=1` in `.env`; the collector skips the listener entirely when the flag is unset.
+2. Ensure the ZMQ endpoints in `.env` match `bitcoin.conf`.
+3. Ensure the host firewall allows the collector to connect to the ZMQ ports.
+4. Restart Bitcoin Core to re-establish ZMQ publishers if necessary.
 
 ## InfluxDB Write Failures
 

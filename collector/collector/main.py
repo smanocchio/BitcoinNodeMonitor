@@ -6,7 +6,7 @@ import argparse
 import asyncio
 import logging
 import time
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import requests
 from requests import RequestException
@@ -72,16 +72,25 @@ class CollectorService:
         self.rpc = _build_rpc(config)
         self.influx = _build_influx(config)
         self.reorg_tracker = ReorgTracker()
-        self.zmq_listener = ZMQListener({
-            "rawblock": config.bitcoin_zmq_rawblock,
-            "rawtx": config.bitcoin_zmq_rawtx,
-        })
+        self.zmq_listener: Optional[ZMQListener]
+        if config.enable_zmq:
+            self.zmq_listener = ZMQListener(
+                {
+                    "rawblock": config.bitcoin_zmq_rawblock,
+                    "rawtx": config.bitcoin_zmq_rawtx,
+                }
+            )
+        else:
+            self.zmq_listener = None
         self.geoip = GeoIPResolver()
         self.fulcrum = FulcrumClient(config.fulcrum_stats_url)
 
     async def start(self) -> None:
-        LOGGER.info("Starting ZMQ listener")
-        self.zmq_listener.start()
+        if self.zmq_listener:
+            LOGGER.info("Starting ZMQ listener")
+            self.zmq_listener.start()
+        else:
+            LOGGER.info("ZMQ listener disabled; skipping subscription")
         fast_task = asyncio.create_task(self._fast_loop())
         slow_task = asyncio.create_task(self._slow_loop())
         await asyncio.gather(fast_task, slow_task)
@@ -112,12 +121,13 @@ class CollectorService:
         blockchain_info = self.rpc.get_blockchain_info()
         reorg_depth = self.reorg_tracker.update(blockchain_info.get("blocks", 0))
         points: List[Point] = []
+        zmq_status = self.zmq_listener.status() if self.zmq_listener else {}
         points.extend(
             create_blockchain_points(
                 self.config,
                 blockchain_info,
                 reorg_depth,
-                self.zmq_listener.status(),
+                zmq_status,
             )
         )
 
@@ -212,7 +222,8 @@ class CollectorService:
         return points
 
     def close(self) -> None:
-        self.zmq_listener.stop()
+        if self.zmq_listener:
+            self.zmq_listener.stop()
         self.influx.close()
         self.geoip.close()
 

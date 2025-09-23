@@ -32,7 +32,7 @@ def test_build_rpc_prefers_explicit_cookie(tmp_path, monkeypatch):
     assert config.cookie_path == cookie
 
     def _fail_find_cookie(_):  # pragma: no cover - invoked only on regression
-        raise AssertionError("_build_rpc should not inspect the datadir when a cookie override is set")
+        raise AssertionError("_build_rpc must ignore the datadir when a cookie override is set")
 
     monkeypatch.setattr("collector.main.find_cookie", _fail_find_cookie)
 
@@ -43,7 +43,14 @@ def test_build_rpc_prefers_explicit_cookie(tmp_path, monkeypatch):
     assert rpc.auth.password == "override-pass"
 
 
-def _build_service(monkeypatch, enable_peer_quality: bool) -> tuple[CollectorService, DummyRPC, DummyInflux]:
+def _build_service(
+    monkeypatch,
+    *,
+    enable_peer_quality: bool,
+    enable_process_metrics: bool = False,
+    enable_disk_io: bool = False,
+    bitcoin_chainstate_dir: str = "~/.bitcoin/chainstate",
+) -> tuple[CollectorService, DummyRPC, DummyInflux]:
     peers = [
         {"inbound": True, "pingtime": 0.5},
         {"inbound": False, "pingtime": 0.25},
@@ -54,11 +61,12 @@ def _build_service(monkeypatch, enable_peer_quality: bool) -> tuple[CollectorSer
     monkeypatch.setattr("collector.main._build_influx", lambda config: fake_influx)
     config = CollectorConfig(
         enable_peer_quality=enable_peer_quality,
-        enable_process_metrics=False,
-        enable_disk_io=False,
+        enable_process_metrics=enable_process_metrics,
+        enable_disk_io=enable_disk_io,
+        bitcoin_chainstate_dir=bitcoin_chainstate_dir,
     )
     service = CollectorService(config)
-    service.fulcrum = SimpleNamespace(fetch=lambda: {})
+    service.fulcrum = SimpleNamespace(fetch=lambda: {})  # type: ignore[assignment]
     return service, fake_rpc, fake_influx
 
 
@@ -80,3 +88,23 @@ def test_collect_slow_skips_peers_when_disabled(monkeypatch):
     assert rpc.calls == 0
     assert influx.writes
     assert all(point.measurement != "peers" for point in influx.writes[0])
+
+
+def test_collect_slow_skips_filesystem_when_path_missing(monkeypatch):
+    def _missing_disk_usage(path):
+        raise FileNotFoundError(path)
+
+    monkeypatch.setattr("collector.process_metrics.psutil.disk_usage", _missing_disk_usage)
+
+    service, rpc, influx = _build_service(
+        monkeypatch,
+        enable_peer_quality=False,
+        enable_disk_io=True,
+        bitcoin_chainstate_dir="/nonexistent/path",
+    )
+
+    service.collect_slow()
+
+    assert rpc.calls == 0
+    assert influx.writes
+    assert all(point.measurement != "filesystem" for point in influx.writes[0])

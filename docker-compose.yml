@@ -63,7 +63,7 @@ services:
     env_file:
       - ${ENV_FILE_PATH:-.env}
     volumes:
-      - ${BITCOIN_DATADIR:-~/.bitcoin}:${BITCOIN_DATADIR:-/root/.bitcoin}:ro
+      - ${BITCOIN_DATADIR:-${HOME}/.bitcoin}:${BITCOIN_DATADIR_CONTAINER:-/root/.bitcoin}:ro
     healthcheck:
       test: ["CMD", "python", "-m", "collector", "--healthcheck"]
       interval: 30s

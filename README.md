@@ -17,6 +17,11 @@ The repository contains the Docker assets needed to run the full stack as well a
 Python collector service that queries Bitcoin Core over RPC, monitors ZMQ block/transaction
 streams, and pushes metrics to InfluxDB.
 
+> **Heads up:** Docker Compose does **not** expand `~` inside volume mappings. Set
+> `BITCOIN_DATADIR` in your `.env` file to the absolute path of the Bitcoin Core data
+> directory you want to mount into the collector container. Without the bind mount the
+> collector cannot read the RPC cookie or sample disk utilisation.
+
 ## Components at a Glance
 
 | Component | Purpose | Implementation Details |
@@ -75,6 +80,10 @@ docker-compose.yml    Orchestrates the optional InfluxDB, Grafana, collector, an
 The stack runs anywhere Docker is available. The quick start guide now contains parallel
 instructions for Linux hosts (including WSL2) and Windows hosts using PowerShell alongside
 Docker Desktop, so you can follow the workflow that matches your environment.
+
+Change the default Grafana administrator password in `.env` before exposing the dashboards
+to anyone else. The sample configuration now uses a placeholder value to remind you to set a
+unique secret for your deployment.
 
 ## Contributing
 

@@ -130,6 +130,22 @@ def test_collect_slow_skips_filesystem_when_path_missing(monkeypatch):
     assert all(point.measurement != "filesystem" for point in influx.writes[0])
 
 
+def test_collect_slow_skips_process_metrics_when_process_missing(monkeypatch):
+    monkeypatch.setattr("collector.main.collect_process_metrics", lambda: None)
+
+    service, rpc, influx = _build_service(
+        monkeypatch,
+        enable_peer_quality=False,
+        enable_process_metrics=True,
+    )
+
+    service.collect_slow()
+
+    assert rpc.calls == 0
+    assert influx.writes
+    assert all(point.measurement != "process" for point in influx.writes[0])
+
+
 def test_collect_slow_skips_fulcrum_when_url_blank(monkeypatch):
     service, rpc, influx = _build_service(monkeypatch, enable_peer_quality=False)
     service.fulcrum = None  # type: ignore[assignment]

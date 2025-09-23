@@ -13,8 +13,14 @@ docker compose --profile bundled-influx --profile bundled-grafana up -d
 ```
 
 * Profiles allow you to include the bundled InfluxDB and Grafana services only when needed.
-* Override `USE_EXTERNAL_INFLUX=1` or `USE_EXTERNAL_GRAFANA=1` to prevent Docker from
-  starting local instances.
+  Set `COMPOSE_PROFILES=bundled-influx,bundled-grafana` (or pass `--profile` flags as shown)
+  to launch the local services, or omit the profiles entirely when pointing at external
+  infrastructure.
+
+> **Permissions:** The collector container now runs as an unprivileged `collector` user.
+> Ensure the mounted Bitcoin datadir and Influx token file are readable by non-root users on
+> the host (for example via `chmod 640` and group membership) so metrics scraping continues to
+> work after the upgrade.
 
 ### Stop
 
@@ -68,7 +74,8 @@ All containers define Docker health checks, which you can inspect via `docker co
 
 ### External InfluxDB
 
-1. Set `USE_EXTERNAL_INFLUX=1` to skip the bundled container.
+1. Omit the `bundled-influx` profile (for example `COMPOSE_PROFILES=bundled-grafana` or by
+   passing only `--profile bundled-grafana` on the command line).
 2. Provide `INFLUX_URL`, `INFLUX_TOKEN`, `INFLUX_ORG`, and `INFLUX_BUCKET` for the remote
    instance.
 3. Update Grafana provisioning to point at the external InfluxDB endpoint (environment
@@ -76,7 +83,7 @@ All containers define Docker health checks, which you can inspect via `docker co
 
 ### External Grafana
 
-1. Set `USE_EXTERNAL_GRAFANA=1` to disable the bundled dashboard container.
+1. Omit the `bundled-grafana` profile when starting Docker Compose.
 2. Import the JSON dashboards from `grafana/dashboards` into your existing Grafana.
 3. Recreate the InfluxDB data source manually using the same organisation, bucket, and token
    configured for the collector.

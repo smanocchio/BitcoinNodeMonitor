@@ -50,7 +50,6 @@ corresponding measurements.
 | `INFLUX_SETUP_USERNAME` / `INFLUX_SETUP_PASSWORD` | `admin` / `admin123` | Credentials used once during bootstrap to create the initial API token. |
 | `INFLUX_TOKEN` | _empty_ | If provided, overrides the generated token and is used by both the collector and Grafana. |
 | `INFLUX_BIND_IP` | `127.0.0.1` | Bind address used when exposing the InfluxDB UI through Docker Compose port mapping. |
-| `USE_EXTERNAL_INFLUX` | `0` | Set to `1` to skip starting the bundled InfluxDB service. |
 
 The bootstrap script writes the active token to `/var/lib/influxdb2/.influxdbv2/token`. The
 collector reads the file when `INFLUX_TOKEN` is empty, so the `influx-data` volume must stay
@@ -63,10 +62,14 @@ mounted (read-only) on the collector service as shown in `docker-compose.yml`.
 | `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` | `admin` / `change-me` | Initial administrator credentials. Replace the password with a unique value before exposing Grafana. |
 | `GRAFANA_BIND_IP` | `127.0.0.1` | Bind address for the HTTP server. Combine with `EXPOSE_UI=1` to listen beyond localhost. |
 | `EXPOSE_UI` | `0` | When set to `1`, Docker Compose binds Grafana to all interfaces. See hardening guidance before exposing externally. |
-| `USE_EXTERNAL_GRAFANA` | `0` | Set to `1` to skip the bundled Grafana container. |
 
 Grafana provisioning picks up the same InfluxDB credentials that the collector uses, so
 changes to `INFLUX_*` variables should be reflected here as well.
+
+> **Profiles vs. environment flags** – Docker Compose profiles control whether the bundled
+> InfluxDB and Grafana services start. Enable the `bundled-influx` and `bundled-grafana`
+> profiles (via `docker compose --profile ...` or `COMPOSE_PROFILES`) to run the local
+> services, or omit those profiles when integrating with external instances.
 
 ## Collector Behaviour Flags
 

@@ -3,6 +3,14 @@
 All notable changes to this project will be documented here.
 
 ## [Unreleased]
+- Escape special characters in InfluxDB line protocol output and add unit tests guarding
+  against regressions.
+- Skip publishing process metrics when the `bitcoind` process is absent to avoid reporting
+  misleading zeroes.
+- Remove the unused `influxdb-client` dependency from the collector package.
+- Clarify Docker Compose profile usage for bundled InfluxDB and Grafana services and document
+  the collector running as a non-root user.
+- Switch the collector container to run as an unprivileged user by default.
 - Mount InfluxDB token and GeoIP databases into the collector to enable automatic
   authentication and GeoIP enrichment out of the box.
 - Stop printing the InfluxDB API token during bootstrap and document the change.

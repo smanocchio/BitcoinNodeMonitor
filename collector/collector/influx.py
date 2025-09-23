@@ -31,9 +31,35 @@ class Point:
         return self
 
     def to_line(self) -> str:
-        tags = "".join([f",{k}={v}" for k, v in self.tags.items()])
-        fields = ",".join([f"{k}={v}" for k, v in self.fields.items()])
-        return f"{self.measurement}{tags} {fields}"
+        measurement = _escape_measurement(self.measurement)
+        tags = "".join(
+            [f",{_escape_tag_key(k)}={_escape_tag_value(v)}" for k, v in self.tags.items()]
+        )
+        fields = ",".join([f"{_escape_field_key(k)}={v}" for k, v in self.fields.items()])
+        return f"{measurement}{tags} {fields}"
+
+
+def _escape_measurement(value: str) -> str:
+    return _escape_component(str(value), characters=(",", " ", "="))
+
+
+def _escape_tag_key(value: str) -> str:
+    return _escape_component(str(value), characters=(",", " ", "="))
+
+
+def _escape_tag_value(value: str) -> str:
+    return _escape_component(str(value), characters=(",", " ", "="))
+
+
+def _escape_field_key(value: str) -> str:
+    return _escape_component(str(value), characters=(",", " ", "="))
+
+
+def _escape_component(value: str, characters: tuple[str, ...]) -> str:
+    escaped = value.replace("\\", "\\\\")
+    for char in characters:
+        escaped = escaped.replace(char, f"\\{char}")
+    return escaped
 
 
 class InfluxWriter:

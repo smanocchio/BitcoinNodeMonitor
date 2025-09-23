@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
+from typing import Optional
 
 import psutil
+
+LOGGER = logging.getLogger(__name__)
 
 
 def collect_process_metrics(process_name: str = "bitcoind") -> dict[str, float]:
@@ -21,8 +25,23 @@ def collect_process_metrics(process_name: str = "bitcoind") -> dict[str, float]:
     return {"cpu_percent": 0.0, "memory_rss_mb": 0.0, "open_files": 0.0}
 
 
-def collect_disk_usage(path: str) -> dict[str, float]:
-    usage = psutil.disk_usage(str(Path(path)))
+def collect_disk_usage(path: str) -> Optional[dict[str, float]]:
+    """Return disk usage statistics for ``path`` if it exists.
+
+    When the path is missing (for example, when the chainstate directory is not mounted
+    inside the collector container) we log a debug message and return ``None`` so that
+    callers can skip emitting filesystem metrics instead of failing.
+    """
+
+    try:
+        usage = psutil.disk_usage(str(Path(path)))
+    except FileNotFoundError:
+        LOGGER.debug("Disk path not found for metrics collection", extra={"path": path})
+        return None
+    except Exception as exc:  # pragma: no cover - defensive guard
+        LOGGER.warning("Unexpected disk usage error", exc_info=exc, extra={"path": path})
+        return None
+
     return {
         "total_gb": round(usage.total / (1024**3), 2),
         "used_gb": round(usage.used / (1024**3), 2),

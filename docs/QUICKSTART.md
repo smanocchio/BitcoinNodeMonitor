@@ -55,11 +55,11 @@ Follow the steps that match your operating system:
    |----------|-------------|
    | `BITCOIN_RPC_HOST` / `BITCOIN_RPC_PORT` | Location of your Bitcoin Core RPC endpoint. Defaults to `host.docker.internal` so the collector can reach a node running on the Docker host. |
    | `BITCOIN_RPC_USER` / `BITCOIN_RPC_PASSWORD` | RPC credentials, or leave blank to use the cookie file. |
-   | `BITCOIN_DATADIR` | Path mounted into the collector container for cookie access. |
+   | `BITCOIN_DATADIR` | Absolute path mounted into the collector container for cookie access. Docker Compose does not expand `~`, so set this explicitly (for example `/home/bitcoin/.bitcoin`). |
   | `ENABLE_ZMQ` | Set to `1` only when you want ZMQ freshness metrics. Leave it at `0` otherwise. |
    | `BITCOIN_ZMQ_RAWBLOCK` / `BITCOIN_ZMQ_RAWTX` | When ZMQ metrics are enabled, ensure these match `bitcoin.conf`. Leave them commented to skip ZMQ panels. |
    | `INFLUX_SETUP_USERNAME` / `INFLUX_SETUP_PASSWORD` | Credentials used to bootstrap the bundled InfluxDB instance. |
-   | `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` | Initial Grafana login. |
+   | `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` | Initial Grafana login. Replace the placeholder password in `.env` with a unique value before exposing dashboards. |
 
 3. Remember that the collector runs inside a container: use addresses that are reachable from
    that environment. When your node runs on the same machine as Docker, the bundled
@@ -105,7 +105,8 @@ Follow the steps that match your operating system:
      ```
 
    The collector emits a log line each time the fast and slow loops complete. Failures to
-   reach Bitcoin Core or InfluxDB will be logged here.
+   reach Bitcoin Core or InfluxDB are now logged explicitly (watch for "Influx write failed"
+   entries) so connectivity issues surface quickly.
 
 ## 4. Access Grafana
 

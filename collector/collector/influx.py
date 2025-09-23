@@ -2,10 +2,18 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from typing import Dict, Iterable
 
 import requests
+from requests import RequestException, Response
+
+LOGGER = logging.getLogger(__name__)
+
+
+class InfluxWriteError(RuntimeError):
+    """Raised when points cannot be written to InfluxDB."""
 
 
 @dataclass
@@ -42,13 +50,24 @@ class InfluxWriter:
         headers = {"Content-Type": "text/plain"}
         if self.token:
             headers["Authorization"] = f"Token {self.token}"
-        requests.post(
-            f"{self.url}/api/v2/write",
-            params={"org": self.org, "bucket": self.bucket, "precision": "s"},
-            data=lines.encode("utf-8"),
-            headers=headers,
-            timeout=10,
-        )
+        try:
+            response: Response = requests.post(
+                f"{self.url}/api/v2/write",
+                params={"org": self.org, "bucket": self.bucket, "precision": "s"},
+                data=lines.encode("utf-8"),
+                headers=headers,
+                timeout=10,
+            )
+            response.raise_for_status()
+        except RequestException as exc:
+            LOGGER.error(
+                "Influx write failed",
+                extra={
+                    "status_code": getattr(getattr(exc, "response", None), "status_code", None),
+                    "response_body": getattr(getattr(exc, "response", None), "text", None),
+                },
+            )
+            raise InfluxWriteError("Failed to write points to InfluxDB") from exc
 
     def close(self) -> None:  # pragma: no cover
         return

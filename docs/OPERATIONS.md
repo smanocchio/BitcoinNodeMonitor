@@ -39,8 +39,12 @@ All containers define Docker health checks, which you can inspect via `docker co
 * Logs are emitted to stdout. Follow them with `docker compose logs -f collector`.
 * Enable debug logs temporarily by setting `COLLECTOR_LOG_LEVEL=DEBUG` before starting the
   container.
-* Metrics are submitted in batches; watch for `write_points` errors to diagnose connectivity
-  issues with InfluxDB.
+* Metrics are submitted in batches; explicit "Influx write failed" log entries indicate the
+  collector could not persist points. These errors trigger retries automatically, making it
+  easier to alert on persistent write failures.
+* When the chainstate directory is not mounted into the collector container the service logs
+  "Skipping filesystem metrics" and continues publishing the remaining measurements instead
+  of failing the slow loop.
 
 ## Managing Credentials
 

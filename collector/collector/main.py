@@ -168,12 +168,18 @@ class CollectorService:
 
         if self.config.enable_disk_io:
             disk = collect_disk_usage(self.config.bitcoin_chainstate_dir)
-            points.append(
-                Point("filesystem")
-                .tag("path", self.config.bitcoin_chainstate_dir)
-                .field("chainstate_gb", disk["used_gb"])
-                .field("free_percent", disk["free_percent"])
-            )
+            if disk is None:
+                LOGGER.debug(
+                    "Skipping filesystem metrics; chainstate path unavailable",
+                    extra={"path": self.config.bitcoin_chainstate_dir},
+                )
+            else:
+                points.append(
+                    Point("filesystem")
+                    .tag("path", self.config.bitcoin_chainstate_dir)
+                    .field("chainstate_gb", disk["used_gb"])
+                    .field("free_percent", disk["free_percent"])
+                )
 
         try:
             fulcrum = self.fulcrum.fetch()

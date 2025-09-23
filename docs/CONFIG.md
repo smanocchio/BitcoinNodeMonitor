@@ -31,10 +31,13 @@ services. This document explains every option and how they interact.
 
 The collector automatically reads the cookie file when both username and password are empty.
 If the cookie cannot be found, make sure the data directory is mounted read-only into the
-container (see `docker-compose.yml`). Disk utilisation sampling also relies on the
-chainstate directory being available; disable `ENABLE_DISK_IO` when the path is not
-mounted. When ZMQ metrics remain disabled the collector skips starting the listener and
-simply omits the corresponding measurements.
+container (see `docker-compose.yml`). Docker Compose does not expand `~`, so provide
+absolute paths (for example `/home/bitcoin/.bitcoin`). Disk utilisation sampling also relies
+on the chainstate directory being available; when the path is missing the collector now logs
+the condition and skips filesystem metrics instead of failing the slow loop. Disable
+`ENABLE_DISK_IO` entirely when you do not intend to mount the chainstate directory. When ZMQ
+metrics remain disabled the collector skips starting the listener and simply omits the
+corresponding measurements.
 
 ## InfluxDB Options
 
@@ -56,7 +59,7 @@ collector reads the file when `INFLUX_TOKEN` is empty.
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` | `admin` / `admin` | Initial administrator credentials. |
+| `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` | `admin` / `change-me` | Initial administrator credentials. Replace the password with a unique value before exposing Grafana. |
 | `GRAFANA_BIND_IP` | `127.0.0.1` | Bind address for the HTTP server. Combine with `EXPOSE_UI=1` to listen beyond localhost. |
 | `EXPOSE_UI` | `0` | When set to `1`, Docker Compose binds Grafana to all interfaces. See hardening guidance before exposing externally. |
 | `USE_EXTERNAL_GRAFANA` | `0` | Set to `1` to skip the bundled Grafana container. |

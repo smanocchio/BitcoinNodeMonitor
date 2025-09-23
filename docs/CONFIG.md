@@ -23,6 +23,7 @@ services. This document explains every option and how they interact.
 | `BITCOIN_NETWORK` | `mainnet` | Tag applied to every metric. Supports custom values such as `testnet` or `signet`. |
 | `BITCOIN_DATADIR` | `~/.bitcoin` | Mounted into the collector container to access the cookie file and configuration. |
 | `BITCOIN_CHAINSTATE_DIR` | `~/.bitcoin/chainstate` | Used when disk utilisation metrics are enabled. |
+| `ENABLE_DISK_IO` | `1` | Samples disk usage for the chainstate directory. |
 | `ENABLE_ZMQ` | `0` | Set to `1` to collect ZMQ freshness metrics. Leave at `0` when you do not need the Grafana ZMQ panels. |
 | `BITCOIN_ZMQ_RAWBLOCK` | `tcp://127.0.0.1:28332` | Endpoint for raw block notifications. Must match `bitcoin.conf` when ZMQ metrics are enabled. |
 | `BITCOIN_ZMQ_RAWTX` | `tcp://127.0.0.1:28333` | Endpoint for raw transaction notifications. Must match `bitcoin.conf` when ZMQ metrics are enabled. |
@@ -30,8 +31,10 @@ services. This document explains every option and how they interact.
 
 The collector automatically reads the cookie file when both username and password are empty.
 If the cookie cannot be found, make sure the data directory is mounted read-only into the
-container (see `docker-compose.yml`). When ZMQ metrics remain disabled the collector skips
-starting the listener and simply omits the corresponding measurements.
+container (see `docker-compose.yml`). Disk utilisation sampling also relies on the
+chainstate directory being available; disable `ENABLE_DISK_IO` when the path is not
+mounted. When ZMQ metrics remain disabled the collector skips starting the listener and
+simply omits the corresponding measurements.
 
 ## InfluxDB Options
 
@@ -71,9 +74,7 @@ changes to `INFLUX_*` variables should be reflected here as well.
 | `ENABLE_SOFTFORK_SIGNAL` | `1` | Placeholder flag for signalling dashboards. |
 | `ENABLE_PEER_QUALITY` | `1` | Enables peer latency aggregations. |
 | `ENABLE_PROCESS_METRICS` | `1` | Collects CPU, memory, and file descriptor counts for the `bitcoind` process using `psutil`. |
-| `ENABLE_DISK_IO` | `1` | Samples disk usage for the chainstate directory. |
 | `ENABLE_PEER_CHURN` | `1` | Reserved for future peer churn calculations. |
-| `ENABLE_ASN_STATS` | `1` | Enables ASN lookup fields when GeoIP data is available. |
 
 Flags marked as placeholders do not currently toggle additional logic but are included for
 future compatibility with dashboards.
@@ -96,9 +97,11 @@ When histogram collection is disabled (`none`), the collector skips external cal
 |----------|---------|-------------|
 | `GEOIP_ACCOUNT_ID` / `GEOIP_LICENSE_KEY` | _empty_ | MaxMind account credentials required to download GeoLite2 databases. |
 | `GEOIP_UPDATE_FREQUENCY_DAYS` | `7` | How often `geoipupdate` refreshes the databases. |
+| `ENABLE_ASN_STATS` | `1` | Enables ASN lookup fields when GeoIP data is available. |
 
 If credentials are omitted the update container will fail gracefully; peer metrics will still
-collect counts but without country/ASN enrichment.
+collect counts but without country/ASN enrichment. Toggle `ENABLE_ASN_STATS` off when you
+prefer to skip ASN lookups altogether.
 
 ## Customising for Testnet or Signet
 

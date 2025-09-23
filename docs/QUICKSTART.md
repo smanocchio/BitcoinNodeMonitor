@@ -54,7 +54,7 @@ Follow the steps that match your operating system:
    | `BITCOIN_RPC_HOST` / `BITCOIN_RPC_PORT` | Location of your Bitcoin Core RPC endpoint. |
    | `BITCOIN_RPC_USER` / `BITCOIN_RPC_PASSWORD` | RPC credentials, or leave blank to use the cookie file. |
    | `BITCOIN_DATADIR` | Path mounted into the collector container for cookie access. |
-   | `ENABLE_ZMQ` | Set to `1` only when you want ZMQ freshness metrics. Leave it commented otherwise. |
+  | `ENABLE_ZMQ` | Set to `1` only when you want ZMQ freshness metrics. Leave it at `0` otherwise. |
    | `BITCOIN_ZMQ_RAWBLOCK` / `BITCOIN_ZMQ_RAWTX` | When ZMQ metrics are enabled, ensure these match `bitcoin.conf`. Leave them commented to skip ZMQ panels. |
    | `INFLUX_SETUP_USERNAME` / `INFLUX_SETUP_PASSWORD` | Credentials used to bootstrap the bundled InfluxDB instance. |
    | `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` | Initial Grafana login. |

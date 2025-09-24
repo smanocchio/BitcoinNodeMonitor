@@ -43,13 +43,31 @@ def test_build_rpc_prefers_explicit_cookie(tmp_path, monkeypatch):
     assert rpc.auth.password == "override-pass"
 
 
+def test_build_rpc_skips_datadir_lookup_when_unset(monkeypatch, tmp_path):
+    missing_cookie = tmp_path / "missing.cookie"
+
+    def _fail_find_cookie(_):  # pragma: no cover - indicates regression
+        raise AssertionError("find_cookie must not run when the datadir is unset")
+
+    monkeypatch.setattr("collector.main.find_cookie", _fail_find_cookie)
+
+    config = CollectorConfig(
+        bitcoin_datadir=None,
+        bitcoin_rpc_cookie_path=str(missing_cookie),
+    )
+
+    rpc = _build_rpc(config)
+
+    assert rpc.auth is None
+
+
 def _build_service(
     monkeypatch,
     *,
     enable_peer_quality: bool,
     enable_process_metrics: bool = False,
     enable_disk_io: bool = False,
-    bitcoin_chainstate_dir: str = "~/.bitcoin/chainstate",
+    bitcoin_chainstate_dir: str | None = "~/.bitcoin/chainstate",
 ) -> tuple[CollectorService, DummyRPC, DummyInflux]:
     peers = [
         {"inbound": True, "pingtime": 0.5, "addr": "203.0.113.5:8333"},
@@ -121,6 +139,21 @@ def test_collect_slow_skips_filesystem_when_path_missing(monkeypatch):
         enable_peer_quality=False,
         enable_disk_io=True,
         bitcoin_chainstate_dir="/nonexistent/path",
+    )
+
+    service.collect_slow()
+
+    assert rpc.calls == 0
+    assert influx.writes
+    assert all(point.measurement != "filesystem" for point in influx.writes[0])
+
+
+def test_collect_slow_skips_filesystem_when_path_disabled(monkeypatch):
+    service, rpc, influx = _build_service(
+        monkeypatch,
+        enable_peer_quality=False,
+        enable_disk_io=True,
+        bitcoin_chainstate_dir=None,
     )
 
     service.collect_slow()

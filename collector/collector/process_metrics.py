@@ -26,13 +26,17 @@ def collect_process_metrics(process_name: str = "bitcoind") -> Optional[dict[str
     return None
 
 
-def collect_disk_usage(path: str) -> Optional[dict[str, float]]:
+def collect_disk_usage(path: str | None) -> Optional[dict[str, float]]:
     """Return disk usage statistics for ``path`` if it exists.
 
     When the path is missing (for example, when the chainstate directory is not mounted
     inside the collector container) we log a debug message and return ``None`` so that
     callers can skip emitting filesystem metrics instead of failing.
     """
+
+    if not path:
+        LOGGER.debug("Disk metrics disabled; no path provided")
+        return None
 
     try:
         usage = psutil.disk_usage(str(Path(path)))

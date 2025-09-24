@@ -12,9 +12,11 @@ BITCOIN_CONF_LOCATIONS = (
 )
 
 
-def find_cookie(datadir: str) -> Optional[Path]:
+def find_cookie(datadir: str | None) -> Optional[Path]:
     """Return the cookie path if it exists."""
 
+    if not datadir:
+        return None
     path = Path(datadir).expanduser() / ".cookie"
     return path if path.exists() else None
 

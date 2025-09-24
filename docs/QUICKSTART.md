@@ -58,12 +58,18 @@ Follow the steps that match your operating system:
    |----------|-------------|
    | `BITCOIN_RPC_HOST` / `BITCOIN_RPC_PORT` | Location of your Bitcoin Core RPC endpoint. Defaults to `host.docker.internal` so the collector can reach a node running on the Docker host. |
    | `BITCOIN_RPC_USER` / `BITCOIN_RPC_PASSWORD` | RPC credentials, or leave blank to use the cookie file. |
-   | `BITCOIN_DATADIR` | Absolute path mounted into the collector container for cookie access. Docker Compose does not expand `~`, so set this explicitly (for example `/home/bitcoin/.bitcoin`). |
+   | `BITCOIN_DATADIR` | Absolute path mounted into the collector container for cookie access. Docker Compose does not expand `~`, so set this explicitly (for example `/home/bitcoin/.bitcoin`). Leave empty when the directory is not mounted. |
+   | `BITCOIN_CHAINSTATE_DIR` | Path sampled for disk usage metrics. Defaults to a `chainstate` subdirectory under the data directory; clear the value when the mount is unavailable or you do not need the dashboard panels. |
    | `ENABLE_ZMQ` | Set to `1` only when you want ZMQ freshness metrics. Leave it at `0` otherwise. |
    | `BITCOIN_ZMQ_RAWBLOCK` / `BITCOIN_ZMQ_RAWTX` | When ZMQ metrics are enabled, ensure these match `bitcoin.conf`. Leave them commented to skip ZMQ panels. |
    | `INFLUX_SETUP_USERNAME` / `INFLUX_SETUP_PASSWORD` | Credentials used to bootstrap the bundled InfluxDB instance. |
    | `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` | Initial Grafana login. Replace the placeholder password in `.env` with a unique value before exposing dashboards. |
    | `FULCRUM_STATS_URL` | Leave blank unless you have a Fulcrum/Electrs instance exposing `/stats`. |
+
+Most deployments can leave the defaults in place: the collector expects `chainstate` to live
+under the data directory. Only point `BITCOIN_CHAINSTATE_DIR` somewhere else when you store
+the database on a different volume, or clear the value when the path is not mounted and you
+want to skip the disk usage panels.
 
 3. Remember that the collector runs inside a container: use addresses that are reachable from
    that environment. When your node runs on the same machine as Docker, the bundled

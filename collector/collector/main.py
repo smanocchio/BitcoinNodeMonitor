@@ -40,7 +40,7 @@ def _build_rpc(config: CollectorConfig) -> BitcoinRPC:
         # Prefer an explicit cookie path override before inspecting the datadir.
         if config.cookie_path:
             cookie = format_cookie_auth(config.cookie_path)
-        else:
+        elif config.bitcoin_datadir:
             cookie_path = find_cookie(config.bitcoin_datadir)
             if cookie_path:
                 cookie = format_cookie_auth(cookie_path)
@@ -177,19 +177,22 @@ class CollectorService:
                 )
 
         if self.config.enable_disk_io:
-            disk = collect_disk_usage(self.config.bitcoin_chainstate_dir)
-            if disk is None:
-                LOGGER.debug(
-                    "Skipping filesystem metrics; chainstate path unavailable",
-                    extra={"path": self.config.bitcoin_chainstate_dir},
-                )
+            if self.config.bitcoin_chainstate_dir:
+                disk = collect_disk_usage(self.config.bitcoin_chainstate_dir)
+                if disk is None:
+                    LOGGER.debug(
+                        "Skipping filesystem metrics; chainstate path unavailable",
+                        extra={"path": self.config.bitcoin_chainstate_dir},
+                    )
+                else:
+                    points.append(
+                        Point("filesystem")
+                        .tag("path", self.config.bitcoin_chainstate_dir)
+                        .field("chainstate_gb", disk["used_gb"])
+                        .field("free_percent", disk["free_percent"])
+                    )
             else:
-                points.append(
-                    Point("filesystem")
-                    .tag("path", self.config.bitcoin_chainstate_dir)
-                    .field("chainstate_gb", disk["used_gb"])
-                    .field("free_percent", disk["free_percent"])
-                )
+                LOGGER.debug("Disk utilisation disabled; no chainstate path configured")
 
         if self.fulcrum:
             try:

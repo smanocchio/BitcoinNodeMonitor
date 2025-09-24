@@ -19,8 +19,11 @@ streams, and pushes metrics to InfluxDB.
 
 > **Heads up:** Docker Compose does **not** expand `~` inside volume mappings. Set
 > `BITCOIN_DATADIR` in your `.env` file to the absolute path of the Bitcoin Core data
-> directory you want to mount into the collector container. Without the bind mount the
-> collector cannot read the RPC cookie or sample disk utilisation.
+> directory you want to mount into the collector container so it can read the RPC cookie and
+> configuration files. If you also want the “Chainstate Size” and “Free Space” panels to
+> populate, make sure `BITCOIN_CHAINSTATE_DIR` points at the mounted `chainstate`
+> directory (the default lives under the data directory). Leave either value empty when the
+> path is not available and the collector should behave as a remote observer.
 
 ## Components at a Glance
 

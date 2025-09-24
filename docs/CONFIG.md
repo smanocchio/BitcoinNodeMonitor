@@ -21,8 +21,8 @@ services. This document explains every option and how they interact.
 | `BITCOIN_RPC_USER` / `BITCOIN_RPC_PASSWORD` | _empty_ | Explicit RPC credentials. Leave blank when using cookie auth. |
 | `BITCOIN_RPC_COOKIE_PATH` | `~/.bitcoin/.cookie` | Preferred cookie location when set. If the file is missing, the collector searches the mounted data directory. Set to an empty string to skip cookie discovery. |
 | `BITCOIN_NETWORK` | `mainnet` | Tag applied to every metric. Supports custom values such as `testnet` or `signet`. |
-| `BITCOIN_DATADIR` | `~/.bitcoin` | Mounted into the collector container to access the cookie file and configuration. Leave blank when monitoring a remote node so the collector does not inspect local paths. |
-| `BITCOIN_CHAINSTATE_DIR` | `~/.bitcoin/chainstate` | Used when disk utilisation metrics are enabled. Clear this value to disable filesystem sampling. |
+| `BITCOIN_DATADIR` | `~/.bitcoin` | Bind-mounted into the collector container so it can read `bitcoin.conf` and the RPC cookie. Provide an absolute path; leave blank when monitoring a remote node so the collector skips local discovery. |
+| `BITCOIN_CHAINSTATE_DIR` | `~/.bitcoin/chainstate` | Filesystem path sampled for disk utilisation metrics. Defaults to a subdirectory inside the data directory; override if `chainstate` lives elsewhere or clear the value to disable sampling. |
 | `ENABLE_DISK_IO` | `1` | Samples disk usage for the chainstate directory. |
 | `ENABLE_ZMQ` | `0` | Set to `1` to collect ZMQ freshness metrics. Leave at `0` when you do not need the Grafana ZMQ panels. |
 | `BITCOIN_ZMQ_RAWBLOCK` | `tcp://127.0.0.1:28332` | Endpoint for raw block notifications. Must match `bitcoin.conf` when ZMQ metrics are enabled. |
@@ -35,8 +35,9 @@ container (see `docker-compose.yml`). Docker Compose does not expand `~`, so pro
 absolute paths (for example `/home/bitcoin/.bitcoin`). When running the collector away from
 the node, set `BITCOIN_DATADIR` (and optionally `BITCOIN_RPC_COOKIE_PATH`) to an empty value
 so the discovery step is skipped entirely. Disk utilisation sampling relies on the
-chainstate directory being available; provide a real path when the mount is present, or
-leave `BITCOIN_CHAINSTATE_DIR` empty to disable filesystem metrics even if `ENABLE_DISK_IO`
+`chainstate` directory being available; when it resides inside the data directory you can
+reuse that same mount, but override `BITCOIN_CHAINSTATE_DIR` if you keep it on a different
+volume or leave the value empty to disable filesystem metrics even if `ENABLE_DISK_IO`
 remains set to `1`. When ZMQ
 metrics remain disabled the collector skips starting the listener and simply omits the
 corresponding measurements.

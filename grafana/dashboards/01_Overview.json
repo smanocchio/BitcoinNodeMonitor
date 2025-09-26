@@ -1,61 +1,352 @@
 {
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
   "id": null,
-  "title": "01 - Overview",
-  "uid": "btc-overview",
-  "schemaVersion": 38,
-  "version": 1,
+  "links": [],
+  "liveNow": false,
   "panels": [
     {
-      "type": "stat",
-      "title": "Block Lag",
-      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 0},
+      "datasource": {
+        "type": "influxdb",
+        "uid": "-100"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 2
+              }
+            ]
+          },
+          "unit": "blocks"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.2.2",
       "targets": [
         {
-          "datasource": {"type": "influxdb", "uid": "-100"},
-          "query": "from(bucket: \"$INFLUX_BUCKET\")\n  |> range(start: -5m)\n  |> filter(fn: (r) => r._measurement == \"blockchain\" and r._field == \"block_lag\")\n  |> last()",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "-100"
+          },
+          "query": "from(bucket: \"$__env{INFLUX_BUCKET}\")\n  |> range(start: -5m)\n  |> filter(fn: (r) => r._measurement == \"blockchain\" and r._field == \"block_lag\")\n  |> last()",
+          "queryType": "flux",
           "refId": "A"
         }
-      ]
+      ],
+      "title": "Block Lag",
+      "type": "stat"
     },
     {
-      "type": "timeseries",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "-100"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "blocks"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 6,
+        "y": 0
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "10.2.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "-100"
+          },
+          "query": "from(bucket: \"$__env{INFLUX_BUCKET}\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"blockchain\" and r._field =~ /best_height|headers_height/)\n  |> aggregateWindow(every: 1m, fn: last, createEmpty: false)\n  |> yield(name: \"series\")",
+          "queryType": "flux",
+          "refId": "A"
+        }
+      ],
       "title": "Headers vs Blocks",
-      "gridPos": {"h": 8, "w": 12, "x": 4, "y": 0},
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {"type": "influxdb", "uid": "-100"},
-          "query": "from(bucket: \"$INFLUX_BUCKET\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"blockchain\" and r._field =~ /best_height|headers_height/)",
-          "format": "time_series"
-        }
-      ]
+      "type": "timeseries"
     },
     {
-      "type": "timeseries",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "-100"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 3,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "memory_rss_mb"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "mbytes"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 6,
+        "x": 0,
+        "y": 6
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "10.2.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "-100"
+          },
+          "query": "from(bucket: \"$__env{INFLUX_BUCKET}\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"process\" and r._field =~ /cpu_percent|memory_rss_mb/)\n  |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)\n  |> yield(name: \"resources\")",
+          "queryType": "flux",
+          "refId": "A"
+        }
+      ],
       "title": "CPU & Memory",
-      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 4},
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {"type": "influxdb", "uid": "-100"},
-          "query": "from(bucket: \"$INFLUX_BUCKET\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"process\" and r._field =~ /cpu_percent|memory_rss_mb/)",
-          "format": "time_series"
-        }
-      ]
+      "type": "timeseries"
     },
     {
-      "type": "stat",
-      "title": "Chainstate Size (GB)",
-      "gridPos": {"h": 4, "w": 4, "x": 16, "y": 0},
+      "datasource": {
+        "type": "influxdb",
+        "uid": "-100"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 250
+              },
+              {
+                "color": "red",
+                "value": 300
+              }
+            ]
+          },
+          "unit": "gbytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 12,
+        "y": 9
+      },
+      "id": 8,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.2.2",
       "targets": [
         {
-          "refId": "A",
-          "datasource": {"type": "influxdb", "uid": "-100"},
-          "query": "from(bucket: \"$INFLUX_BUCKET\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == \"filesystem\" and r._field == \"chainstate_gb\")\n  |> last()",
-          "format": "time_series"
+          "datasource": {
+            "type": "influxdb",
+            "uid": "-100"
+          },
+          "query": "from(bucket: \"$__env{INFLUX_BUCKET}\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == \"filesystem\" and r._field == \"chainstate_gb\")\n  |> last()",
+          "queryType": "flux",
+          "refId": "A"
         }
-      ]
+      ],
+      "title": "Chainstate Size (GB)",
+      "type": "stat"
     }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": [
+    "bitcoin"
   ],
   "templating": {
     "list": []
@@ -63,5 +354,11 @@
   "time": {
     "from": "now-6h",
     "to": "now"
-  }
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "01 - Overview",
+  "uid": "btc-overview",
+  "version": 1,
+  "weekStart": ""
 }

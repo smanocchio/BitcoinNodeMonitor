@@ -1,60 +1,385 @@
 {
-  "title": "02 - Sync Health",
-  "uid": "btc-sync",
-  "schemaVersion": 38,
-  "version": 1,
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
   "panels": [
     {
-      "type": "timeseries",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "-100"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "10.2.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "-100"
+          },
+          "query": "from(bucket: \"$__env{INFLUX_BUCKET}\")\n  |> range(start: -12h)\n  |> filter(fn: (r) => r._measurement == \"blockchain\" and r._field == \"verification_progress\")\n  |> aggregateWindow(every: 1m, fn: last, createEmpty: false)\n  |> yield(name: \"progress\")",
+          "queryType": "flux",
+          "refId": "A"
+        }
+      ],
       "title": "Verification Progress",
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {"type": "influxdb", "uid": "-100"},
-          "query": "from(bucket: \"$INFLUX_BUCKET\")\n  |> range(start: -12h)\n  |> filter(fn: (r) => r._measurement == \"blockchain\" and r._field == \"verification_progress\")"
-        }
-      ]
+      "type": "timeseries"
     },
     {
-      "type": "timeseries",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "-100"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Seconds",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 3,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "10.2.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "-100"
+          },
+          "query": "from(bucket: \"$__env{INFLUX_BUCKET}\")\n  |> range(start: -12h)\n  |> filter(fn: (r) => r._measurement == \"blockchain\" and r._field == \"block_interval_seconds\")\n  |> aggregateWindow(every: 5m, fn: mean, createEmpty: false)\n  |> yield(name: \"interval\")",
+          "queryType": "flux",
+          "refId": "A"
+        }
+      ],
       "title": "Block Interval (s)",
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {"type": "influxdb", "uid": "-100"},
-          "query": "from(bucket: \"$INFLUX_BUCKET\")\n  |> range(start: -12h)\n  |> filter(fn: (r) => r._measurement == \"blockchain\" and r._field == \"block_interval_seconds\")"
-        }
-      ]
+      "type": "timeseries"
     },
     {
-      "type": "timeseries",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "-100"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Events/min",
+            "axisPlacement": "auto",
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "stepBefore",
+            "lineWidth": 0,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "10.2.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "-100"
+          },
+          "query": "from(bucket: \"$__env{INFLUX_BUCKET}\")\n  |> range(start: -12h)\n  |> filter(fn: (r) => r._measurement == \"zmq\" and r._field == \"rawblock_per_min\")\n  |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)\n  |> yield(name: \"zmq\")",
+          "queryType": "flux",
+          "refId": "A"
+        }
+      ],
       "title": "ZMQ Rawblock Rate",
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {"type": "influxdb", "uid": "-100"},
-          "query": "from(bucket: \"$INFLUX_BUCKET\")\n  |> range(start: -12h)\n  |> filter(fn: (r) => r._measurement == \"zmq\" and r._field == \"rawblock_per_min\")"
-        }
-      ]
+      "type": "timeseries"
     },
     {
-      "type": "timeseries",
-      "title": "Reorg Depth",
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "datasource": {
+        "type": "influxdb",
+        "uid": "-100"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": true,
+            "axisColorMode": "text",
+            "axisLabel": "Blocks",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 2
+              }
+            ]
+          },
+          "unit": "blocks"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "10.2.2",
       "targets": [
         {
-          "refId": "A",
-          "datasource": {"type": "influxdb", "uid": "-100"},
-          "query": "from(bucket: \"$INFLUX_BUCKET\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"blockchain\" and r._field == \"max_reorg_depth\")"
+          "datasource": {
+            "type": "influxdb",
+            "uid": "-100"
+          },
+          "query": "from(bucket: \"$__env{INFLUX_BUCKET}\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"blockchain\" and r._field == \"max_reorg_depth\")\n  |> aggregateWindow(every: 1d, fn: max, createEmpty: false)\n  |> yield(name: \"reorg\")",
+          "queryType": "flux",
+          "refId": "A"
         }
-      ]
+      ],
+      "title": "Reorg Depth",
+      "type": "timeseries"
     }
   ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": [
+    "bitcoin"
+  ],
+  "templating": {
+    "list": []
+  },
   "time": {
     "from": "now-12h",
     "to": "now"
-  }
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "02 - Sync Health",
+  "uid": "btc-sync",
+  "version": 1,
+  "weekStart": ""
 }

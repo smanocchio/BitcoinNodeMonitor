@@ -1,75 +1,516 @@
 {
-  "title": "04 - Peers & Geo",
-  "uid": "btc-peers",
-  "schemaVersion": 38,
-  "version": 1,
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
   "panels": [
     {
-      "type": "worldmap",
-      "title": "Peers by Country",
-      "gridPos": {"h": 10, "w": 12, "x": 0, "y": 0},
+      "datasource": {
+        "type": "influxdb",
+        "uid": "-100"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 10
+              },
+              {
+                "color": "red",
+                "value": 25
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 18,
+        "w": 13,
+        "x": 0,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "basemap": {
+          "config": {
+            "style": "dark"
+          },
+          "name": "CartoDB Dark"
+        },
+        "controls": {
+          "mouseWheelZoom": true,
+          "showAttribution": true,
+          "showDebug": false,
+          "showScale": false,
+          "showZoom": true
+        },
+        "dataConfig": {
+          "auto": false,
+          "labelFields": [
+            "peer_id",
+            "country",
+            "city",
+            "asn"
+          ],
+          "latitudeField": "latitude",
+          "longitudeField": "longitude",
+          "metricField": "count"
+        },
+        "featureStyle": {
+          "color": {
+            "fixed": "#33a1fd",
+            "mode": "fixed"
+          },
+          "opacity": 80,
+          "sizeConfig": {
+            "byValue": true,
+            "field": "count",
+            "max": 24,
+            "min": 4,
+            "mode": "linear"
+          }
+        },
+        "initialView": {
+          "lat": 20,
+          "lon": 0,
+          "zoom": 1.5
+        },
+        "layerTypes": [
+          "markers"
+        ],
+        "view": {
+          "lat": 20,
+          "lon": 0,
+          "zoom": 1.5
+        }
+      },
+      "pluginVersion": "10.2.2",
       "targets": [
         {
-          "refId": "A",
-          "datasource": {"type": "influxdb", "uid": "-100"},
-          "query": "from(bucket: \"$INFLUX_BUCKET\")\n  |> range(start: -5m)\n  |> filter(fn: (r) => r._measurement == \"peers_geo\" and r._field == \"count\")\n  |> last()"
+          "datasource": {
+            "type": "influxdb",
+            "uid": "-100"
+          },
+          "query": "from(bucket: \"$__env{INFLUX_BUCKET}\")\n  |> range(start: -10m)\n  |> filter(fn: (r) => r._measurement == \"peers_geo\" and (r._field == \"lat\" or r._field == \"lon\" or r._field == \"country\" or r._field == \"city\" or r._field == \"asn\" or r._field == \"count\"))\n  |> last()\n  |> pivot(rowKey: [\"peer_id\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> rename(columns: {lat: \"latitude\", lon: \"longitude\"})\n  |> keep(columns: [\"peer_id\", \"latitude\", \"longitude\", \"country\", \"city\", \"asn\", \"count\"])\n  |> map(fn: (r) => ({ r with count: if exists r.count then float(v: r.count) else 1.0 }))",
+          "queryType": "flux",
+          "refId": "A"
         }
-      ]
+      ],
+      "title": "Peers by Location",
+      "transformations": [
+        {
+          "id": "convertFieldType",
+          "options": {
+            "conversions": [
+              {
+                "destinationType": "number",
+                "targetField": "latitude"
+              },
+              {
+                "destinationType": "number",
+                "targetField": "longitude"
+              },
+              {
+                "destinationType": "number",
+                "targetField": "count"
+              }
+            ]
+          }
+        }
+      ],
+      "type": "geomap"
     },
     {
-      "type": "timeseries",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "-100"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Peers",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 11,
+        "x": 13,
+        "y": 0
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "10.2.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "-100"
+          },
+          "query": "from(bucket: \"$__env{INFLUX_BUCKET}\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"peers\" and r._field =~ /total|inbound|outbound/)\n  |> aggregateWindow(every: 5m, fn: mean, createEmpty: false)\n  |> yield(name: \"peers\")",
+          "queryType": "flux",
+          "refId": "A"
+        }
+      ],
       "title": "Peer Count",
-      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 0},
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {"type": "influxdb", "uid": "-100"},
-          "query": "from(bucket: \"$INFLUX_BUCKET\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"peers\" and r._field =~ /total|inbound|outbound/)",
-          "format": "time_series"
-        }
-      ]
+      "type": "timeseries"
     },
     {
-      "type": "table",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "-100"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "mode": "gradient"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 11,
+        "x": 13,
+        "y": 9
+      },
+      "id": 6,
+      "options": {
+        "footer": {
+          "countRows": false,
+          "enablePagination": true,
+          "fields": ""
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "10.2.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "-100"
+          },
+          "query": "from(bucket: \"$__env{INFLUX_BUCKET}\")\n  |> range(start: -10m)\n  |> filter(fn: (r) => r._measurement == \"peers_asn\")\n  |> last()\n  |> pivot(rowKey: [\"asn\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> keep(columns: [\"asn\", \"count\", \"organization\"])",
+          "queryType": "flux",
+          "refId": "A"
+        }
+      ],
       "title": "Top ASNs",
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 6},
-      "targets": [
+      "transformations": [
         {
-          "refId": "A",
-          "datasource": {"type": "influxdb", "uid": "-100"},
-          "query": "from(bucket: \"$INFLUX_BUCKET\")\n  |> range(start: -5m)\n  |> filter(fn: (r) => r._measurement == \"peers_asn\")\n  |> last()",
-          "format": "table"
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "field": "count",
+                "order": "desc"
+              }
+            ]
+          }
         }
-      ]
+      ],
+      "type": "table"
     },
     {
-      "type": "timeseries",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "-100"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Milliseconds",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 3,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 150
+              },
+              {
+                "color": "red",
+                "value": 300
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 13,
+        "x": 0,
+        "y": 18
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "10.2.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "-100"
+          },
+          "query": "from(bucket: \"$__env{INFLUX_BUCKET}\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"peers\" and r._field == \"ping_p95_ms\")\n  |> aggregateWindow(every: 5m, fn: mean, createEmpty: false)\n  |> yield(name: \"latency\")",
+          "queryType": "flux",
+          "refId": "A"
+        }
+      ],
       "title": "Peer Ping p95 (ms)",
-      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 10},
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {"type": "influxdb", "uid": "-100"},
-          "query": "from(bucket: \"$INFLUX_BUCKET\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"peers\" and r._field == \"ping_p95_ms\")"
-        }
-      ]
+      "type": "timeseries"
     },
     {
-      "type": "timeseries",
-      "title": "Peer Churn",
-      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 16},
+      "datasource": {
+        "type": "influxdb",
+        "uid": "-100"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Peers/min",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 3,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 13,
+        "x": 0,
+        "y": 26
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "10.2.2",
       "targets": [
         {
-          "refId": "A",
-          "datasource": {"type": "influxdb", "uid": "-100"},
-          "query": "from(bucket: \"$INFLUX_BUCKET\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"peers\" and r._field =~ /joins_per_min|leaves_per_min/)",
-          "format": "time_series"
+          "datasource": {
+            "type": "influxdb",
+            "uid": "-100"
+          },
+          "query": "from(bucket: \"$__env{INFLUX_BUCKET}\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"peers\" and r._field =~ /joins_per_min|leaves_per_min/)\n  |> aggregateWindow(every: 5m, fn: mean, createEmpty: false)\n  |> yield(name: \"churn\")",
+          "queryType": "flux",
+          "refId": "A"
         }
-      ]
+      ],
+      "title": "Peer Churn",
+      "type": "timeseries"
     }
   ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": [
+    "bitcoin"
+  ],
+  "templating": {
+    "list": []
+  },
   "time": {
     "from": "now-24h",
     "to": "now"
-  }
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "04 - Peers & Geo",
+  "uid": "btc-peers",
+  "version": 1,
+  "weekStart": ""
 }

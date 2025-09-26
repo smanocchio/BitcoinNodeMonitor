@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass, field
+from decimal import Decimal
 from ipaddress import ip_address
+from numbers import Real
 from typing import Any, Dict, Iterable, List, Mapping, Sequence, Tuple, TypedDict
 
 from .config import CollectorConfig
@@ -180,9 +182,8 @@ def create_peer_geo_points(
             asn_counts[(direction, asn_value)] += 1
         latitude = lookup.get("latitude")
         longitude = lookup.get("longitude")
-        if (
-            isinstance(latitude, (int, float))
-            and isinstance(longitude, (int, float))
+        if isinstance(latitude, (Real, Decimal)) and isinstance(
+            longitude, (Real, Decimal)
         ):
             coord_entries.append(
                 (

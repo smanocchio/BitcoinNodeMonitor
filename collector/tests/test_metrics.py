@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from collector.config import CollectorConfig
 from collector.metrics import (
     ReorgTracker,
@@ -128,3 +130,36 @@ def test_create_peer_geo_points_includes_coordinates():
     assert outbound_point.fields["longitude"] == -75.6972
     assert outbound_point.tags["ip"] == "198.51.100.5"
     assert outbound_point.tags["country"] == "CA"
+
+
+class DecimalResolver:
+    @property
+    def is_configured(self) -> bool:
+        return True
+
+    def lookup(self, ip: str) -> dict[str, str | float | Decimal | None]:
+        return {
+            "country": "US",
+            "asn": "AS64500 Example",
+            "latitude": Decimal("37.7749"),
+            "longitude": Decimal("-122.4194"),
+        }
+
+
+def test_create_peer_geo_points_accepts_decimal_coordinates():
+    config = CollectorConfig(bitcoin_network="mainnet")
+    peers = [{"addr": "203.0.113.1:8333", "inbound": True}]
+    resolver = DecimalResolver()
+
+    points = create_peer_geo_points(config, peers, resolver)
+
+    coord_points = [
+        point for point in points if point.measurement == "peer_geo_coords"
+    ]
+
+    assert len(coord_points) == 1
+    coord_point = coord_points[0]
+    assert isinstance(coord_point.fields["latitude"], float)
+    assert isinstance(coord_point.fields["longitude"], float)
+    assert coord_point.fields["latitude"] == float(Decimal("37.7749"))
+    assert coord_point.fields["longitude"] == float(Decimal("-122.4194"))

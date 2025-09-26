@@ -31,14 +31,23 @@ class GeoIPResolver:
         if self.asn_reader:
             self.asn_reader.close()
 
-    def lookup(self, ip: str) -> dict[str, Optional[str]]:
-        result: dict[str, Optional[str]] = {"country": None, "asn": None}
+    def lookup(self, ip: str) -> dict[str, Optional[str | float]]:
+        result: dict[str, Optional[str | float]] = {
+            "country": None,
+            "asn": None,
+            "latitude": None,
+            "longitude": None,
+        }
         if self.city_reader:
             try:
                 city = self.city_reader.city(ip)
                 result["country"] = city.country.iso_code
+                result["latitude"] = city.location.latitude
+                result["longitude"] = city.location.longitude
             except Exception:  # noqa: BLE001
                 result["country"] = None
+                result["latitude"] = None
+                result["longitude"] = None
         if self.asn_reader:
             try:
                 asn = self.asn_reader.asn(ip)

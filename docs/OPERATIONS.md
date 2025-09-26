@@ -84,9 +84,33 @@ All containers define Docker health checks, which you can inspect via `docker co
 ### External Grafana
 
 1. Omit the `bundled-grafana` profile when starting Docker Compose.
-2. Import the JSON dashboards from `grafana/dashboards` into your existing Grafana.
-3. Recreate the InfluxDB data source manually using the same organisation, bucket, and token
+2. Recreate the InfluxDB data source manually using the same organisation, bucket, and token
    configured for the collector.
+3. Update the exported dashboards before importing them. The JSON files reference a fixed
+   data source UID (`btc-influx` once you save it), so Grafana will refuse to render panels
+   until the UID matches a source that exists in your instance. Copy the UID from
+   **Connections → Data sources → _your Influx data source_ → UID** and rewrite the files,
+   for example:
+
+   ```bash
+   sed -i.bak 's/"uid": "btc-influx"/"uid": "<your-uid>"/g' grafana/dashboards/*.json
+   rm grafana/dashboards/*.bak
+   ```
+
+   Alternatively, the following shell loop rewrites the UID with `jq`:
+
+   ```bash
+   for file in grafana/dashboards/*.json; do
+     tmp=$(mktemp)
+     jq --arg uid "<your-uid>" \
+       '(.panels[]?.datasource.uid, .templating.list[]?.datasource.uid) |=
+         (select(. == "btc-influx") | $uid)' "$file" > "$tmp"
+     mv "$tmp" "$file"
+   done
+   ```
+
+4. Import the JSON dashboards from `grafana/dashboards` into your existing Grafana once the
+   UID matches your data source.
 
 ## Upgrading the Collector
 

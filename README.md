@@ -35,6 +35,10 @@ streams, and pushes metrics to InfluxDB.
 | GeoIP     | Periodically downloads MaxMind GeoLite2 databases for peer geography insights. | Managed via the `geoipupdate` container and configuration template in `geoip/`. |
 | Dashboards | Ready-to-use Grafana dashboards grouped by topic (overview, sync, mempool, peers). | JSON exports located in `grafana/dashboards`. |
 
+When you import the dashboards into an existing Grafana instance, rewrite the data source UID
+as outlined in [External Grafana](docs/OPERATIONS.md#external-grafana) so the panels resolve
+against your own InfluxDB connection.
+
 ## Data Flow Summary
 
 1. **Bitcoin Core** exposes JSON-RPC, ZMQ block/transaction streams, and optionally Fulcrum

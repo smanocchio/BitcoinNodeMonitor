@@ -172,12 +172,12 @@ def create_peer_geo_points(
             continue
         lookup = resolver.lookup(ip)
         direction = "inbound" if peer.get("inbound") else "outbound"
-        country = lookup.get("country")
-        if country:
-            country_counts[(direction, country)] += 1
-        asn = lookup.get("asn")
-        if asn:
-            asn_counts[(direction, asn)] += 1
+        country_value = lookup.get("country")
+        if isinstance(country_value, str) and country_value:
+            country_counts[(direction, country_value)] += 1
+        asn_value = lookup.get("asn")
+        if isinstance(asn_value, str) and asn_value:
+            asn_counts[(direction, asn_value)] += 1
         latitude = lookup.get("latitude")
         longitude = lookup.get("longitude")
         if (
@@ -187,8 +187,8 @@ def create_peer_geo_points(
             coord_entries.append(
                 (
                     direction,
-                    country if isinstance(country, str) else None,
-                    asn if isinstance(asn, str) else None,
+                    country_value if isinstance(country_value, str) else None,
+                    asn_value if isinstance(asn_value, str) else None,
                     ip,
                     float(latitude),
                     float(longitude),
@@ -215,7 +215,7 @@ def create_peer_geo_points(
             .field("peer_count", float(count))
         )
 
-    for direction, country, asn, ip, latitude, longitude in coord_entries:
+    for direction, country_opt, asn_opt, ip, latitude, longitude in coord_entries:
         point = (
             Point("peer_geo_coords")
             .tag("network", config.bitcoin_network)
@@ -225,10 +225,10 @@ def create_peer_geo_points(
             .field("latitude", latitude)
             .field("longitude", longitude)
         )
-        if country:
-            point = point.tag("country", country)
-        if asn:
-            point = point.tag("asn", asn)
+        if country_opt is not None:
+            point = point.tag("country", country_opt)
+        if asn_opt is not None:
+            point = point.tag("asn", asn_opt)
         points.append(point)
 
     return points

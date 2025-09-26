@@ -125,7 +125,10 @@ want to skip the disk usage panels.
 1. Navigate to `http://127.0.0.1:3000/` (or the host/IP you configured) and log in with the
    credentials from `.env`.
 2. Grafana auto-loads the dashboards from `grafana/dashboards`. Look for the “Bitcoin Node
-   Overview” dashboard to validate data is flowing.
+   Overview” dashboard to validate data is flowing. When you plan to import the dashboards
+   into an existing Grafana instead of the bundled container, follow the
+   [External Grafana](OPERATIONS.md#external-grafana) workflow to rewrite the data source UID
+   before importing.
 
 ## 5. Validate Metrics
 

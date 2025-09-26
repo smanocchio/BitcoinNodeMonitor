@@ -37,6 +37,7 @@ class CollectorConfig(BaseSettings):
     influx_org: str = "bitcoin"
     influx_bucket: str = "btc_metrics"
     influx_token: str = ""
+    influx_tls_verify: bool = True
 
     scrape_interval_fast: int = 5
     scrape_interval_slow: int = 30

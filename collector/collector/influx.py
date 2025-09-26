@@ -63,11 +63,19 @@ def _escape_component(value: str, characters: tuple[str, ...]) -> str:
 
 
 class InfluxWriter:
-    def __init__(self, url: str, token: str, org: str, bucket: str) -> None:
+    def __init__(
+        self,
+        url: str,
+        token: str,
+        org: str,
+        bucket: str,
+        verify_tls: bool = True,
+    ) -> None:
         self.url = url.rstrip("/")
         self.token = token
         self.org = org
         self.bucket = bucket
+        self.verify_tls = verify_tls
 
     def write_points(self, points: Iterable[Point]) -> None:
         lines = "\n".join(point.to_line() for point in points if point.fields)
@@ -83,6 +91,7 @@ class InfluxWriter:
                 data=lines.encode("utf-8"),
                 headers=headers,
                 timeout=10,
+                verify=self.verify_tls,
             )
             response.raise_for_status()
         except RequestException as exc:

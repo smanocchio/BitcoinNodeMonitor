@@ -164,18 +164,36 @@ def create_peer_geo_points(
     country_counts: Counter[Tuple[str, str]] = Counter()
     asn_counts: Counter[Tuple[str, str]] = Counter()
 
+    coord_entries: List[Tuple[str, str | None, str | None, str, float, float]] = []
+
     for peer in peers:
         ip = _extract_ip(peer.get("addr"))
         if not ip:
             continue
         lookup = resolver.lookup(ip)
         direction = "inbound" if peer.get("inbound") else "outbound"
-        country = lookup.get("country")
-        if country:
-            country_counts[(direction, country)] += 1
-        asn = lookup.get("asn")
-        if asn:
-            asn_counts[(direction, asn)] += 1
+        country_value = lookup.get("country")
+        if isinstance(country_value, str) and country_value:
+            country_counts[(direction, country_value)] += 1
+        asn_value = lookup.get("asn")
+        if isinstance(asn_value, str) and asn_value:
+            asn_counts[(direction, asn_value)] += 1
+        latitude = lookup.get("latitude")
+        longitude = lookup.get("longitude")
+        if (
+            isinstance(latitude, (int, float))
+            and isinstance(longitude, (int, float))
+        ):
+            coord_entries.append(
+                (
+                    direction,
+                    country_value if isinstance(country_value, str) else None,
+                    asn_value if isinstance(asn_value, str) else None,
+                    ip,
+                    float(latitude),
+                    float(longitude),
+                )
+            )
 
     points: List[Point] = []
 
@@ -196,5 +214,21 @@ def create_peer_geo_points(
             .tag("asn", asn)
             .field("peer_count", float(count))
         )
+
+    for direction, country_opt, asn_opt, ip, latitude, longitude in coord_entries:
+        point = (
+            Point("peer_geo_coords")
+            .tag("network", config.bitcoin_network)
+            .tag("direction", direction)
+            .tag("ip", ip)
+            .field("peer_count", 1.0)
+            .field("latitude", latitude)
+            .field("longitude", longitude)
+        )
+        if country_opt is not None:
+            point = point.tag("country", country_opt)
+        if asn_opt is not None:
+            point = point.tag("asn", asn_opt)
+        points.append(point)
 
     return points

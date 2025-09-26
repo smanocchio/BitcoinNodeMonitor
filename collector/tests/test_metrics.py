@@ -51,12 +51,22 @@ class DummyResolver:
     def is_configured(self) -> bool:
         return True
 
-    def lookup(self, ip: str) -> dict[str, str | None]:
+    def lookup(self, ip: str) -> dict[str, str | float | None]:
         if ip == "203.0.113.1":
-            return {"country": "US", "asn": "AS64500 Example"}
+            return {
+                "country": "US",
+                "asn": "AS64500 Example",
+                "latitude": 37.7749,
+                "longitude": -122.4194,
+            }
         if ip == "198.51.100.5":
-            return {"country": "CA", "asn": None}
-        return {"country": None, "asn": None}
+            return {
+                "country": "CA",
+                "asn": None,
+                "latitude": 45.4215,
+                "longitude": -75.6972,
+            }
+        return {"country": None, "asn": None, "latitude": None, "longitude": None}
 
 
 def test_create_peer_geo_points_counts_country_and_asn():
@@ -84,3 +94,37 @@ def test_create_peer_geo_points_counts_country_and_asn():
     assert geo[("outbound", "CA")] == 1
     assert asn[("inbound", "AS64500 Example")] == 1
     assert asn[("outbound", "AS64500 Example")] == 1
+
+
+def test_create_peer_geo_points_includes_coordinates():
+    config = CollectorConfig(bitcoin_network="mainnet")
+    peers = [
+        {"addr": "203.0.113.1:8333", "inbound": True},
+        {"addr": "198.51.100.5:8333", "inbound": False},
+    ]
+    resolver = DummyResolver()
+
+    points = create_peer_geo_points(config, peers, resolver)
+
+    coord_points = [
+        point for point in points if point.measurement == "peer_geo_coords"
+    ]
+
+    assert len(coord_points) == 2
+
+    inbound_point = next(
+        point for point in coord_points if point.tags["direction"] == "inbound"
+    )
+    assert inbound_point.fields["latitude"] == 37.7749
+    assert inbound_point.fields["longitude"] == -122.4194
+    assert inbound_point.tags["ip"] == "203.0.113.1"
+    assert inbound_point.tags["country"] == "US"
+    assert inbound_point.tags["asn"] == "AS64500 Example"
+
+    outbound_point = next(
+        point for point in coord_points if point.tags["direction"] == "outbound"
+    )
+    assert outbound_point.fields["latitude"] == 45.4215
+    assert outbound_point.fields["longitude"] == -75.6972
+    assert outbound_point.tags["ip"] == "198.51.100.5"
+    assert outbound_point.tags["country"] == "CA"

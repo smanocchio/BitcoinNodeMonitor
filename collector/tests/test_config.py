@@ -29,3 +29,13 @@ def test_enable_zmq_toggle(monkeypatch):
     monkeypatch.setenv("ENABLE_ZMQ", "1")
     config = CollectorConfig()
     assert config.enable_zmq is True
+
+
+def test_influx_tls_verify_coercion(monkeypatch):
+    monkeypatch.setenv("INFLUX_TLS_VERIFY", "0")
+    config = CollectorConfig()
+    assert config.influx_tls_verify is False
+
+    monkeypatch.setenv("INFLUX_TLS_VERIFY", "1")
+    config = CollectorConfig()
+    assert config.influx_tls_verify is True

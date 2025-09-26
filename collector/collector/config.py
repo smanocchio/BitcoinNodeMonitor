@@ -89,6 +89,34 @@ class CollectorConfig(BaseSettings):
             raise ValueError(f"MEMPOOL_HIST_SOURCE must be one of {allowed}")
         return value_str
 
+    @field_validator("influx_tls_verify", mode="before")
+    @classmethod
+    def normalize_influx_tls_verify(cls, value: object) -> bool | object:
+        """Coerce common string and numeric values to booleans."""
+
+        if isinstance(value, bool) or value is None:
+            return value
+
+        truthy = {"1", "true", "yes", "on"}
+        falsy = {"0", "false", "no", "off"}
+
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in truthy:
+                return True
+            if normalized in falsy:
+                return False
+            raise ValueError(
+                "INFLUX_TLS_VERIFY must be one of: 1, 0, true, false, yes, no, on, off"
+            )
+
+        if isinstance(value, int):
+            if value in (0, 1):
+                return bool(value)
+            raise ValueError("INFLUX_TLS_VERIFY integer values must be 0 or 1")
+
+        return value
+
     @field_validator("scrape_interval_fast", "scrape_interval_slow")
     @classmethod
     def positive_intervals(cls, value: int) -> int:

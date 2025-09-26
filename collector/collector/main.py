@@ -60,6 +60,7 @@ def _build_influx(config: CollectorConfig) -> InfluxWriter:
         token=token,
         org=config.influx_org,
         bucket=config.influx_bucket,
+        verify_tls=config.influx_tls_verify,
     )
 
 

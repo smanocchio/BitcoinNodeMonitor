@@ -52,11 +52,16 @@ corresponding measurements.
 | `INFLUX_RETENTION_DAYS` | `60` | Retention period applied during bootstrap. |
 | `INFLUX_SETUP_USERNAME` / `INFLUX_SETUP_PASSWORD` | `admin` / `admin123` | Credentials used once during bootstrap to create the initial API token. |
 | `INFLUX_TOKEN` | _empty_ | If provided, overrides the generated token and is used by both the collector and Grafana. |
+| `INFLUX_TLS_VERIFY` | `1` | Controls TLS certificate verification for writes. Set to `0` when using self-signed certificates. |
 | `INFLUX_BIND_IP` | `127.0.0.1` | Bind address used when exposing the InfluxDB UI through Docker Compose port mapping. |
 
 The bootstrap script writes the active token to `/var/lib/influxdb2/.influxdbv2/token`. The
 collector reads the file when `INFLUX_TOKEN` is empty, so the `influx-data` volume must stay
 mounted (read-only) on the collector service as shown in `docker-compose.yml`.
+
+> **Self-signed certificates** – When pointing the collector at an InfluxDB instance with a
+> self-signed or otherwise untrusted certificate, export `INFLUX_TLS_VERIFY=0` (or `false`).
+> Only disable verification when you control the network path and understand the risks.
 
 ## Grafana Options
 

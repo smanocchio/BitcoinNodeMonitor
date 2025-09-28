@@ -189,6 +189,28 @@ def test_collect_slow_skips_fulcrum_when_url_blank(monkeypatch):
     assert influx.writes
 
 
+def test_collect_slow_handles_nested_fulcrum_payload(monkeypatch):
+    service, rpc, influx = _build_service(monkeypatch, enable_peer_quality=False)
+    service.fulcrum = SimpleNamespace(
+        fetch=lambda: {
+            "daemon_height": 123,
+            "clients": {"tcp": 2, "ssl": 3, "ws": "ignored"},
+        }
+    )
+
+    service.collect_slow()
+
+    assert rpc.calls == 0
+    assert influx.writes
+    fulcrum_points = [
+        point for point in influx.writes[0] if point.measurement == "fulcrum"
+    ]
+    assert len(fulcrum_points) == 1
+    point = fulcrum_points[0]
+    assert point.fields["tip_height"] == 123.0
+    assert point.fields["clients"] == 5.0
+
+
 def test_read_token_file_returns_empty_when_missing(monkeypatch):
     monkeypatch.setattr("builtins.open", open, raising=False)
     result = _read_token_file()

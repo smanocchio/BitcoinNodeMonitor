@@ -198,11 +198,24 @@ class CollectorService:
         if self.fulcrum:
             try:
                 fulcrum = self.fulcrum.fetch()
-                points.append(
-                    Point("fulcrum")
-                    .field("tip_height", float(fulcrum.get("tip_height", 0)))
-                    .field("clients", float(fulcrum.get("clients", 0)))
-                )
+                height = fulcrum.get("tip_height")
+                if height is None:
+                    height = fulcrum.get("daemon_height", 0)
+                clients = fulcrum.get("clients", 0)
+                if isinstance(clients, dict):
+                    clients = sum(
+                        value for value in clients.values() if isinstance(value, (int, float))
+                    )
+                try:
+                    point = (
+                        Point("fulcrum")
+                        .field("tip_height", float(height))
+                        .field("clients", float(clients))
+                    )
+                except (TypeError, ValueError):
+                    LOGGER.debug("Fulcrum stats malformed; skipping point")
+                else:
+                    points.append(point)
             except RequestException:
                 LOGGER.debug("Fulcrum stats unavailable")
 

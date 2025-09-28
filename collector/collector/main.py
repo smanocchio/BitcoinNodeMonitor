@@ -275,16 +275,33 @@ async def _run(config: CollectorConfig) -> None:
         service.close()
 
 
+def _resolve_log_level(value: str) -> int:
+    """Coerce a string log level into a ``logging`` constant."""
+
+    candidate = str(value or "").strip().upper()
+    if not candidate:
+        return logging.INFO
+
+    level = getattr(logging, candidate, None)
+    if isinstance(level, int):
+        return level
+
+    raise ValueError(f"Unsupported COLLECTOR_LOG_LEVEL value: {value!r}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Bitcoin Monitoring Collector")
     parser.add_argument("--healthcheck", action="store_true", help="Run healthcheck and exit")
     args = parser.parse_args()
 
+    config = load_config()
+
+    log_level = _resolve_log_level(config.collector_log_level)
+
     logging.basicConfig(
-        level=logging.INFO,
+        level=log_level,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
-    config = load_config()
 
     if args.healthcheck:
         LOGGER.info("Configuration loaded for %s", config.bitcoin_network)

@@ -1,7 +1,10 @@
+import logging
 from types import SimpleNamespace
 
+import pytest
+
 from collector.config import CollectorConfig
-from collector.main import CollectorService, _build_rpc, _read_token_file
+from collector.main import CollectorService, _build_rpc, _read_token_file, _resolve_log_level
 
 
 class DummyRPC:
@@ -209,6 +212,16 @@ def test_collect_slow_handles_nested_fulcrum_payload(monkeypatch):
     point = fulcrum_points[0]
     assert point.fields["tip_height"] == 123.0
     assert point.fields["clients"] == 5.0
+
+
+def test_resolve_log_level_is_case_insensitive():
+    assert _resolve_log_level("debug") == logging.DEBUG
+    assert _resolve_log_level(" Info ") == logging.INFO
+
+
+def test_resolve_log_level_rejects_invalid_values():
+    with pytest.raises(ValueError):
+        _resolve_log_level("not-a-level")
 
 
 def test_read_token_file_returns_empty_when_missing(monkeypatch):

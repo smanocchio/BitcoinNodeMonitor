@@ -22,7 +22,9 @@ def collect_process_metrics(process_name: str = "bitcoind") -> Optional[dict[str
                 "memory_rss_mb": float(getattr(memory, "rss", 0) / (1024 * 1024) if memory else 0),
                 "open_files": float(proc.info.get("num_fds", 0)),
             }
-    LOGGER.debug("Process not found for metrics collection", extra={"process": process_name})
+    LOGGER.debug(
+        "Process not found for metrics collection", extra={"process_name": process_name}
+    )
     return None
 
 

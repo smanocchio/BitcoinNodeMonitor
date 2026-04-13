@@ -14,7 +14,7 @@ dependencies = [
   "requests>=2.31",
   "tenacity>=8.2",
   "psutil>=5.9",
-  "pyzmq>=25.1",
+  "pyzmq>=27.1.0",
   "geoip2>=4.7"
 ]
 

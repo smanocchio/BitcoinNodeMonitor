@@ -13,7 +13,7 @@ dependencies = [
   "pydantic-settings>=2.2,<3.0",
   "requests>=2.31",
   "tenacity>=8.2",
-  "psutil>=5.9",
+  "psutil>=7.2.2",
   "pyzmq>=25.1",
   "geoip2>=4.7"
 ]

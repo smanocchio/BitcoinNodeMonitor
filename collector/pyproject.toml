@@ -19,7 +19,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["mypy>=1.10", "types-requests", "ruff", "pytest"]
+dev = ["mypy>=1.20.0", "types-requests", "ruff", "pytest"]
 
 [tool.ruff]
 line-length = 100
